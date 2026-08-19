@@ -2,28 +2,23 @@
 <html lang="uk">
 <head>
     <meta charset="UTF-8">
-    <title>Para Hub</title>
+    <title>Para Content Hub</title>
     <style>
-        body { background: #121212; color: #eee; font-family: sans-serif; display: flex; justify-content: center; padding: 20px; }
-        .container { width: 100%; max-width: 500px; }
+        body { background: #121212; color: #eee; font-family: sans-serif; padding: 20px; }
         .box { background: #1e1e1e; padding: 20px; border-radius: 12px; margin-bottom: 15px; }
-        h2 { color: #00e676; margin-top: 0; }
-        a { display: block; color: #2979ff; padding: 10px 0; text-decoration: none; border-bottom: 1px solid #333; }
-        .status { font-family: monospace; color: #00e676; font-size: 1em; margin-top: 10px; }
+        h2 { color: #00e676; }
+        .news { white-space: pre-wrap; color: #fff; line-height: 1.5; }
     </style>
 </head>
 <body>
-    <div class="container">
-        <div class="box">
-            <h2>Мої проєкти</h2>
-            <a href="https://t.me/uapublikgrup">UA | CHAT</a>
-            <a href="https://listen4.myradio24.com/78073">Радіо Удвох</a>
-            <a href="https://trustee.io/ua/?r=W1wkaElONOb">Trustee Wallet</a>
-        </div>
-        <div class="box">
-            <h2>Оперативний статус</h2>
-            <div class="status">Останнє оновлення: 19.08.2026 21:30</div>
-        </div>
+    <div class="box">
+        <h2>Свіжий контент</h2>
+        <div id="content" class="news">Завантаження новин...</div>
     </div>
+    <script>
+        fetch('content.txt')
+            .then(r => r.text())
+            .then(t => document.getElementById('content').innerText = t);
+    </script>
 </body>
 </html>

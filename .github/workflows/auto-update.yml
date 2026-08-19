@@ -1,19 +1,19 @@
 name: Auto Update Hub
 on:
   workflow_dispatch:
+  schedule:
+    - cron: '0 * * * *'
 jobs:
   update-hub:
     runs-on: ubuntu-latest
     permissions: contents: write
     steps:
       - uses: actions/checkout@v3
-      - name: Update Status
+      - name: Update Status File
         run: |
           git config user.name "gansgajder-web"
           git config user.email "gansgajder-web@users.noreply.github.com"
-          # Додаємо запис у статусний блок (замінюємо попередні записи, щоб не було каші)
-          echo "<p>Синхронізація: $(date)</p>" >> status_update.txt
-          # Тут можна додати логіку для виводу даних, поки просто час
-          git add status_update.txt
-          git commit -m "Update status: $(date)"
+          echo "Останнє оновлення: $(date +'%d.%m.%Y %H:%M')" > status.txt
+          git add status.txt
+          git commit -m "Оновлення статусу"
           git push

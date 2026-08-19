@@ -1,9 +1,7 @@
 name: Auto Update Para
 
 on:
-  workflow_dispatch: # Можна запускати вручну кнопкою на сайті
-  schedule:
-    - cron: '0 12 * * *' # Запускається щодня о 12:00 дня
+  workflow_dispatch:
 
 jobs:
   update-repo:
@@ -11,15 +9,12 @@ jobs:
     permissions:
       contents: write
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Add timestamp to log
+      - uses: actions/checkout@v3
+      - name: Update site
         run: |
-          echo "Останнє оновлення хмарою: $(date)" >> update-log.txt
-
-      - name: Commit and push changes
-        uses: stefanzweifel/git-auto-commit-action@v5
-        with:
-          commit_message: "Автоматичне оновлення з хмари 🤖"
-          file_pattern: 'update-log.txt'
+          git config user.name "gansgajder-web"
+          git config user.email "gansgajder-web@users.noreply.github.com"
+          echo "<p>Сайт оновлено автоматично: $(date)</p>" >> index.html
+          git add index.html
+          git commit -m "Авто-оновлення часу: $(date)"
+          git push

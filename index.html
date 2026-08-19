@@ -15,11 +15,19 @@
     <div class="container">
         <div class="box">
             <h2>Свіжий контент</h2>
-            <div class="news">Тема дня: Цікавинки від UA | CHAT
-Дата: 19.08.2026
----
-Сьогоднішній жарт: Чому програмісти люблять природу? Бо в них там багато багів!</div>
+            <div class="news" id="content">Завантаження...</div>
         </div>
     </div>
+
+    <script>
+        fetch('update-log.txt')
+            .then(response => response.text())
+            .then(data => {
+                document.getElementById('content').textContent = data;
+            })
+            .catch(error => {
+                document.getElementById('content').textContent = 'Помилка завантаження контенту';
+            });
+    </script>
 </body>
 </html>

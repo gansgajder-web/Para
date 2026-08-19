@@ -2,41 +2,30 @@
 <html lang="uk">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Para Dashboard</title>
+    <title>Para Hub</title>
     <style>
-        body { 
-            background-color: #121212; 
-            color: #e0e0e0; 
-            font-family: sans-serif; 
-            display: flex; 
-            flex-direction: column; 
-            align-items: center; 
-            padding: 50px;
-        }
-        .card { 
-            background: #1e1e1e; 
-            padding: 30px; 
-            border-radius: 15px; 
-            box-shadow: 0 4px 15px rgba(0,0,0,0.5);
-            max-width: 500px;
-            text-align: center;
-        }
-        h1 { color: #00e676; }
-        .log { margin-top: 20px; font-size: 0.9em; color: #888; }
-        a { color: #2979ff; text-decoration: none; }
+        body { background: #121212; color: #eee; font-family: sans-serif; display: flex; justify-content: center; padding: 20px; }
+        .container { width: 100%; max-width: 500px; }
+        .box { background: #1e1e1e; padding: 20px; border-radius: 12px; margin-bottom: 15px; }
+        h2 { color: #00e676; margin-top: 0; }
+        a { display: block; color: #2979ff; padding: 10px 0; text-decoration: none; border-bottom: 1px solid #333; }
+        a:hover { color: #fff; }
+        .status { font-family: monospace; color: #888; font-size: 0.85em; }
     </style>
 </head>
 <body>
-    <div class="card">
-        <h1>Проєкт Para</h1>
-        <p>Центр керування та моніторингу моїх сервісів.</p>
-        <hr style="border: 0; border-top: 1px solid #333; margin: 20px 0;">
-        <div id="content">
-            <p>Система активна та готова до роботи.</p>
+    <div class="container">
+        <div class="box">
+            <h2>Мої проєкти</h2>
+            <a href="https://t.me/uapublikgrup">UA | CHAT</a>
+            <a href="https://listen4.myradio24.com/78073">Радіо Удвох</a>
+            <a href="https://trustee.io/ua/?r=W1wkaElONOb">Trustee Wallet</a>
         </div>
-        <div class="log" id="last-update">
-            Останнє оновлення: сторінка чекає на дані...
+        <div class="box">
+            <h2>Оперативний статус</h2>
+            <div id="status-log" class="status">
+                <!-- Сюди скрипт буде автоматично дописувати стан -->
+            </div>
         </div>
     </div>
 </body>

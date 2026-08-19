@@ -1,8 +1,5 @@
 name: Simple Update
-on:
-  workflow_dispatch:
-  schedule:
-    - cron: '0 8 * * *'
+on: [workflow_dispatch, push]
 jobs:
   update:
     runs-on: ubuntu-latest
@@ -10,11 +7,10 @@ jobs:
       contents: write
     steps:
       - uses: actions/checkout@v3
-      - name: Update timestamp
-        run: |
+      - run: |
           git config user.name "gansgajder-web"
           git config user.email "gansgajder-web@users.noreply.github.com"
-          echo "Оновлено: $(date +'%d.%m.%Y о %H:%M')" > update-log.txt
+          date > update-log.txt
           git add update-log.txt
-          git commit -m "Автоматичне оновлення часу"
+          git commit -m "Auto update"
           git push

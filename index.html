@@ -22,14 +22,8 @@
         </div>
         <div class="box">
             <h2>Оперативний статус</h2>
-            <div id="status-log" class="status">Система працює...</div>
+            <div class="status">Останнє оновлення: 19.08.2026 21:30</div>
         </div>
     </div>
-    <script>
-        // Цей код автоматично підтягне файл статусу
-        fetch('status.txt')
-            .then(response => response.text())
-            .then(data => { document.getElementById('status-log').innerText = data; });
-    </script>
 </body>
 </html>

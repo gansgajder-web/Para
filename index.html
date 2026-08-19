@@ -9,8 +9,7 @@
         .box { background: #1e1e1e; padding: 20px; border-radius: 12px; margin-bottom: 15px; }
         h2 { color: #00e676; margin-top: 0; }
         a { display: block; color: #2979ff; padding: 10px 0; text-decoration: none; border-bottom: 1px solid #333; }
-        a:hover { color: #fff; }
-        .status { font-family: monospace; color: #888; font-size: 0.85em; }
+        .status { font-family: monospace; color: #00e676; font-size: 1em; margin-top: 10px; }
     </style>
 </head>
 <body>
@@ -23,10 +22,14 @@
         </div>
         <div class="box">
             <h2>Оперативний статус</h2>
-            <div id="status-log" class="status">
-                <!-- Сюди скрипт буде автоматично дописувати стан -->
-            </div>
+            <div id="status-log" class="status">Система працює...</div>
         </div>
     </div>
+    <script>
+        // Цей код автоматично підтягне файл статусу
+        fetch('status.txt')
+            .then(response => response.text())
+            .then(data => { document.getElementById('status-log').innerText = data; });
+    </script>
 </body>
 </html>

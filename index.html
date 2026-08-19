@@ -4,21 +4,22 @@
     <meta charset="UTF-8">
     <title>Para Content Hub</title>
     <style>
-        body { background: #121212; color: #eee; font-family: sans-serif; padding: 20px; }
+        body { background: #121212; color: #eee; font-family: sans-serif; display: flex; justify-content: center; padding: 20px; }
+        .container { width: 100%; max-width: 500px; }
         .box { background: #1e1e1e; padding: 20px; border-radius: 12px; margin-bottom: 15px; }
-        h2 { color: #00e676; }
-        .news { white-space: pre-wrap; color: #fff; line-height: 1.5; }
+        h2 { color: #00e676; margin-top: 0; }
+        .news { white-space: pre-wrap; color: #fff; line-height: 1.5; font-size: 1em; }
     </style>
 </head>
 <body>
-    <div class="box">
-        <h2>Свіжий контент</h2>
-        <div id="content" class="news">Завантаження новин...</div>
+    <div class="container">
+        <div class="box">
+            <h2>Свіжий контент</h2>
+            <div class="news">Тема дня: Цікавинки від UA | CHAT
+Дата: 19.08.2026
+---
+Сьогоднішній жарт: Чому програмісти люблять природу? Бо в них там багато багів!</div>
+        </div>
     </div>
-    <script>
-        fetch('content.txt')
-            .then(r => r.text())
-            .then(t => document.getElementById('content').innerText = t);
-    </script>
 </body>
 </html>

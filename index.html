@@ -1,12 +1,43 @@
 <!DOCTYPE html>
-<html>
+<html lang="uk">
 <head>
     <meta charset="UTF-8">
-    <title>Para Project</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Para Dashboard</title>
+    <style>
+        body { 
+            background-color: #121212; 
+            color: #e0e0e0; 
+            font-family: sans-serif; 
+            display: flex; 
+            flex-direction: column; 
+            align-items: center; 
+            padding: 50px;
+        }
+        .card { 
+            background: #1e1e1e; 
+            padding: 30px; 
+            border-radius: 15px; 
+            box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+            max-width: 500px;
+            text-align: center;
+        }
+        h1 { color: #00e676; }
+        .log { margin-top: 20px; font-size: 0.9em; color: #888; }
+        a { color: #2979ff; text-decoration: none; }
+    </style>
 </head>
 <body>
-    <h1>Вітаю на моєму сайті Para!</h1>
-    <p>Цей сайт живе в хмарі GitHub і оновлюється сам по собі.</p>
-    <a href="update-log.txt">Читати логи автоматичних оновлень</a>
+    <div class="card">
+        <h1>Проєкт Para</h1>
+        <p>Центр керування та моніторингу моїх сервісів.</p>
+        <hr style="border: 0; border-top: 1px solid #333; margin: 20px 0;">
+        <div id="content">
+            <p>Система активна та готова до роботи.</p>
+        </div>
+        <div class="log" id="last-update">
+            Останнє оновлення: сторінка чекає на дані...
+        </div>
+    </div>
 </body>
 </html>

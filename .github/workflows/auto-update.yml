@@ -1,23 +1,19 @@
-name: News Collector
+name: Simple Update
 on:
   workflow_dispatch:
   schedule:
-    - cron: '0 8 * * *' # Запуск щодня о 08:00
+    - cron: '0 8 * * *'
 jobs:
-  collect:
+  update:
     runs-on: ubuntu-latest
     permissions: contents: write
     steps:
       - uses: actions/checkout@v3
-      - name: Collect News
+      - name: Update timestamp
         run: |
           git config user.name "gansgajder-web"
           git config user.email "gansgajder-web@users.noreply.github.com"
-          # Тут скрипт готує файл із "новиною дня"
-          echo "Тема дня: Цікавинки від UA | CHAT" > content.txt
-          echo "Дата: $(date +'%d.%m.%Y')" >> content.txt
-          echo "---" >> content.txt
-          echo "Сьогоднішній жарт: Чому програмісти люблять природу? Бо в них там багато багів!" >> content.txt
-          git add content.txt
-          git commit -m "Оновлено контент"
+          echo "Оновлено: $(date +'%d.%m.%Y о %H:%M')" > update-log.txt
+          git add update-log.txt
+          git commit -m "Автоматичне оновлення часу"
           git push

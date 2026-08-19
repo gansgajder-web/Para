@@ -1,19 +1,23 @@
-name: Auto Update Hub
+name: News Collector
 on:
   workflow_dispatch:
   schedule:
-    - cron: '0 * * * *'
+    - cron: '0 8 * * *' # Запуск щодня о 08:00
 jobs:
-  update-hub:
+  collect:
     runs-on: ubuntu-latest
     permissions: contents: write
     steps:
       - uses: actions/checkout@v3
-      - name: Update Status File
+      - name: Collect News
         run: |
           git config user.name "gansgajder-web"
           git config user.email "gansgajder-web@users.noreply.github.com"
-          echo "Останнє оновлення: $(date +'%d.%m.%Y %H:%M')" > status.txt
-          git add status.txt
-          git commit -m "Оновлення статусу"
+          # Тут скрипт готує файл із "новиною дня"
+          echo "Тема дня: Цікавинки від UA | CHAT" > content.txt
+          echo "Дата: $(date +'%d.%m.%Y')" >> content.txt
+          echo "---" >> content.txt
+          echo "Сьогоднішній жарт: Чому програмісти люблять природу? Бо в них там багато багів!" >> content.txt
+          git add content.txt
+          git commit -m "Оновлено контент"
           git push

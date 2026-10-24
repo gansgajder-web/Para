@@ -49,7 +49,7 @@
         .game-switcher {
             display: flex;
             gap: 8px;
-            margin: 15px 0;
+            margin: 12px 0;
             width: 100%;
             max-width: 340px;
         }
@@ -83,15 +83,15 @@
         }
 
         .status-msg {
-            font-size: 15px;
+            font-size: 14px;
             font-weight: 500;
             color: #64b5f6;
-            margin-bottom: 15px;
-            height: 24px;
+            margin-bottom: 10px;
             text-align: center;
+            min-height: 20px;
         }
 
-        /* Стилі Хрестиків-нуликів */
+        /* Хрестики-нулики */
         .tictactoe-board {
             display: grid;
             grid-template-columns: repeat(3, 85px);
@@ -119,38 +119,58 @@
         .ttt-cell.x { color: #ff5252; }
         .ttt-cell.o { color: #64b5f6; }
 
-        /* Стилі Морського бою */
+        /* Морський бій — дуель */
+        .battleship-boards-wrapper {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            align-items: center;
+        }
+
+        .board-section {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .board-title {
+            font-size: 12px;
+            color: #aaa;
+            margin-bottom: 4px;
+        }
+
         .battleship-board {
             display: grid;
-            grid-template-columns: repeat(5, 50px);
-            grid-template-rows: repeat(5, 50px);
-            gap: 5px;
+            grid-template-columns: repeat(5, 42px);
+            grid-template-rows: repeat(5, 42px);
+            gap: 4px;
             background-color: #222;
-            padding: 6px;
-            border-radius: 10px;
+            padding: 5px;
+            border-radius: 8px;
             border: 1px solid #333;
         }
 
         .bs-cell {
             background-color: #1c1c1e;
             border: 1px solid #333;
-            border-radius: 6px;
-            font-size: 20px;
+            border-radius: 4px;
+            font-size: 16px;
             cursor: pointer;
             display: flex;
             align-items: center;
             justify-content: center;
         }
 
-        .bs-cell.hit { background-color: rgba(255, 82, 82, 0.2); }
+        .bs-cell.ship { background-color: rgba(255, 193, 7, 0.2); }
+        .bs-cell.hit { background-color: rgba(255, 82, 82, 0.3); }
         .bs-cell.miss { background-color: rgba(100, 181, 246, 0.2); }
 
         .action-btn {
-            margin-top: 20px;
+            margin-top: 15px;
             background-color: #2c2c2e;
             color: #ffc107;
             border: 1px solid #444;
-            padding: 10px 20px;
+            padding: 8px 16px;
             font-size: 13px;
             font-weight: bold;
             border-radius: 8px;
@@ -160,7 +180,7 @@
         .footer {
             width: 100%;
             max-width: 400px;
-            margin-top: 15px;
+            margin-top: 10px;
         }
 
         .back-btn {
@@ -186,7 +206,7 @@
 
     <div class="game-switcher">
         <button class="switch-btn active" id="tab-ttt" onclick="switchGame('ttt')">❌ Хрестики-нулики</button>
-        <button class="switch-btn" id="tab-bs" onclick="switchGame('bs')">🚢 Морський бій</button>
+        <button class="switch-btn" id="tab-bs" onclick="switchGame('bs')">🚢 Морський бій (Дуель)</button>
     </div>
 
     <div class="game-container">
@@ -207,10 +227,24 @@
             <button class="action-btn" onclick="resetTTT()">🔄 Нова гра</button>
         </div>
 
-        <!-- Морський бій з лімітом снарядів -->
+        <!-- Морський бій: Дуель з ШІ -->
         <div id="game-bs" style="display: none; flex-direction: column; align-items: center;">
-            <div class="status-msg" id="bs-status">Потопіть 3 кораблі за 8 пострілів!</div>
-            <div class="battleship-board" id="bs-board"></div>
+            <div class="status-msg" id="bs-status">Ваш хід! Стріляйте по флоту бота.</div>
+            
+            <div class="battleship-boards-wrapper">
+                <!-- Поле супротивника (куди стріляєте ви) -->
+                <div class="board-section">
+                    <span class="board-title">🎯 Поле супротивника</span>
+                    <div class="battleship-board" id="bs-enemy-board"></div>
+                </div>
+
+                <!-- Ваше поле (куди стріляє бот) -->
+                <div class="board-section">
+                    <span class="board-title">🛡️ Ваш флот</span>
+                    <div class="battleship-board" id="bs-my-board"></div>
+                </div>
+            </div>
+
             <button class="action-btn" onclick="resetBS()">🔄 Новий бій</button>
         </div>
     </div>
@@ -233,7 +267,7 @@
             document.getElementById('game-bs').style.display = game === 'bs' ? 'flex' : 'none';
             document.getElementById('tab-ttt').classList.toggle('active', game === 'ttt');
             document.getElementById('tab-bs').classList.toggle('active', game === 'bs');
-            if(game === 'bs' && bsCells.length === 0) initBS();
+            if(game === 'bs' && bsEnemyCells.length === 0) initBS();
         }
 
         /* --- ХРЕСТИКИ-НУЛИКИ --- */
@@ -293,72 +327,121 @@
             tttCells.forEach(c => { c.innerText = ""; c.classList.remove('x', 'o'); });
         }
 
-        /* --- МОРСЬКИЙ БІЙ З ЛІМІТОМ СНАРЯДІВ --- */
-        let bsBoardEl = document.getElementById('bs-board');
-        let bsCells = [];
-        let bsShips = [];
-        let bsHits = 0;
-        let bsShotsLeft = 8; // Ліміт: всього 8 пострілів!
+        /* --- МОРСЬКИЙ БІЙ: ДУЕЛЬ З БОТОМ --- */
+        let bsEnemyBoardEl = document.getElementById('bs-enemy-board');
+        let bsMyBoardEl = document.getElementById('bs-my-board');
+        let bsEnemyCells = [];
+        let bsMyCells = [];
+        let enemyShips = [];
+        let myShips = [];
+        let myHits = 0;
+        let botHits = 0;
         let bsActive = true;
 
         function initBS() {
-            bsBoardEl.innerHTML = "";
-            bsCells = [];
-            bsShips = [];
-            bsHits = 0;
-            bsShotsLeft = 8;
+            bsEnemyBoardEl.innerHTML = "";
+            bsMyBoardEl.innerHTML = "";
+            bsEnemyCells = [];
+            bsMyCells = [];
+            enemyShips = [];
+            myShips = [];
+            myHits = 0;
+            botHits = 0;
             bsActive = true;
-            document.getElementById('bs-status').innerText = `Снарідів залишилось: 8 💣`;
+            document.getElementById('bs-status').innerText = "Ваш хід! Стріляйте по ворогу.";
 
-            while(bsShips.length < 3) {
+            // Ховаємо 3 корабля бота
+            while(enemyShips.length < 3) {
                 let pos = Math.floor(Math.random() * 25);
-                if(!bsShips.includes(pos)) bsShips.push(pos);
+                if(!enemyShips.includes(pos)) enemyShips.push(pos);
             }
 
+            // Ховаємо 3 корабля гравця
+            while(myShips.length < 3) {
+                let pos = Math.floor(Math.random() * 25);
+                if(!myShips.includes(pos)) myShips.push(pos);
+            }
+
+            // Створюємо поле ворога
             for(let i=0; i<25; i++) {
                 let cell = document.createElement('button');
                 cell.className = 'bs-cell';
-                cell.onclick = () => fireBS(i, cell);
-                bsBoardEl.appendChild(cell);
-                bsCells.push(cell);
+                cell.onclick = () => playerShoot(i, cell);
+                bsEnemyBoardEl.appendChild(cell);
+                bsEnemyCells.push(cell);
+            }
+
+            // Створюємо ваше поле (показуємо ваші кораблі жовтим)
+            for(let i=0; i<25; i++) {
+                let cell = document.createElement('div');
+                cell.className = 'bs-cell';
+                if(myShips.includes(i)) {
+                    cell.classList.add('ship');
+                    cell.innerText = "🚢";
+                }
+                bsMyBoardEl.appendChild(cell);
+                bsMyCells.push(cell);
             }
         }
 
-        function fireBS(i, cell) {
+        function playerShoot(i, cell) {
             if (!bsActive || cell.classList.contains('hit') || cell.classList.contains('miss')) return;
 
-            bsShotsLeft--;
-
-            if (bsShips.includes(i)) {
+            if (enemyShips.includes(i)) {
                 cell.innerText = "💥";
                 cell.classList.add('hit');
-                bsHits++;
-                if (bsHits === 3) {
-                    document.getElementById('bs-status').innerText = "Перемога! Флот бота на дні! 🏆";
+                myHits++;
+                if (myHits === 3) {
+                    document.getElementById('bs-status').innerText = "Перемога! Ви знищили флот бота! 🏆";
                     bsActive = false;
+                    return;
                 } else {
-                    document.getElementById('bs-status').innerText = `Влучання! Залишилось пострілів: ${bsShotsLeft} 🎯`;
+                    document.getElementById('bs-status').innerText = "Є влучання! Ворог зараз відповість... 🎯";
                 }
             } else {
                 cell.innerText = "💧";
                 cell.classList.add('miss');
-                if (bsShotsLeft === 0) {
-                    document.getElementById('bs-status').innerText = "Снаряди скінчилися! Бот переміг! ❌";
-                    bsActive = false;
-                    revealShips();
-                } else {
-                    document.getElementById('bs-status').innerText = `Мимо! Пострілів є ще: ${bsShotsLeft} ❌`;
-                }
+                document.getElementById('bs-status').innerText = "Мимо! Хід бота... 🤖";
             }
+
+            // Хід бота у відповідь через півсекунди
+            bsActive = false;
+            setTimeout(botShoot, 600);
         }
 
-        function revealShips() {
-            // Показує де ховались кораблі, якщо програв
-            bsShips.forEach(pos => {
-                if(!bsCells[pos].classList.contains('hit')) {
-                    bsCells[pos].innerText = "🚢";
+        function botShoot() {
+            if (!bsActive && myHits < 3) {
+                // Бот обирає випадкову клітинку на вашому полі, куди ще не стріляв
+                let available = [];
+                for(let i=0; i<25; i++) {
+                    let c = bsMyCells[i];
+                    if(!c.classList.contains('hit') && !c.classList.contains('miss')) {
+                        available.push(i);
+                    }
                 }
-            });
+                if(available.length === 0) return;
+
+                let botTarget = available[Math.floor(Math.random() * available.length)];
+                let targetCell = bsMyCells[botTarget];
+
+                if(myShips.includes(botTarget)) {
+                    targetCell.innerText = "💥";
+                    targetCell.classList.add('hit');
+                    botHits++;
+                    if(botHits === 3) {
+                        document.getElementById('bs-status').innerText = "Поразка! Бот потопив ваш флот! ❌";
+                        bsActive = false;
+                        return;
+                    } else {
+                        document.getElementById('bs-status').innerText = "Бот влучив у ваш корабель! Ваш хід 🎯";
+                    }
+                } else {
+                    targetCell.innerText = "💧";
+                    targetCell.classList.add('miss');
+                    document.getElementById('bs-status').innerText = "Бот промахнувся! Ваш хід 🟢";
+                }
+                bsActive = true;
+            }
         }
 
         function resetBS() {

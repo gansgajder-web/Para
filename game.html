@@ -27,7 +27,6 @@
             padding: 15px;
         }
 
-        /* Шапка з гаманцем */
         .header {
             width: 100%;
             display: flex;
@@ -47,7 +46,6 @@
             transform-origin: right center;
         }
 
-        /* Ігрова зона */
         .game-container {
             display: flex;
             flex-direction: column;
@@ -57,16 +55,38 @@
             width: 100%;
         }
 
+        .mode-selector {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+
+        .mode-btn {
+            background: #1e1e1e;
+            color: #aaa;
+            border: 1px solid #333;
+            padding: 6px 12px;
+            border-radius: 6px;
+            font-size: 12px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+
+        .mode-btn.active {
+            background: #ffc107;
+            color: #121212;
+            border-color: #ffc107;
+        }
+
         .status-msg {
             font-size: 16px;
             font-weight: 500;
             color: #64b5f6;
-            margin-bottom: 20px;
+            margin-bottom: 15px;
             height: 24px;
             text-align: center;
         }
 
-        /* Ігрове поле 3х3 */
         .board {
             display: grid;
             grid-template-columns: repeat(3, 90px);
@@ -105,9 +125,8 @@
             color: #64b5f6;
         }
 
-        /* Кнопка перезапуску */
         .restart-btn {
-            margin-top: 25px;
+            margin-top: 20px;
             background-color: #2c2c2e;
             color: #ffc107;
             border: 1px solid #444;
@@ -116,14 +135,8 @@
             font-weight: bold;
             border-radius: 8px;
             cursor: pointer;
-            transition: background 0.2s;
         }
 
-        .restart-btn:hover {
-            background-color: #3a3a3c;
-        }
-
-        /* Нижнє меню повернення */
         .footer {
             width: 100%;
             max-width: 400px;
@@ -141,11 +154,6 @@
             border-radius: 10px;
             font-weight: bold;
             border: 1px solid #333;
-            transition: background 0.2s;
-        }
-
-        .back-btn:hover {
-            background-color: #2c2c2c;
         }
     </style>
 </head>
@@ -157,7 +165,12 @@
     </div>
 
     <div class="game-container">
-        <div class="status-msg" id="status">Хід гравця: Х (Хрестики)</div>
+        <div class="mode-selector">
+            <button class="mode-btn active" id="btn-bot" onclick="setMode('bot')">🤖 Проти Бота</button>
+            <button class="mode-btn" id="btn-friend" onclick="setMode('friend')">👥 З другом</button>
+        </div>
+
+        <div class="status-msg" id="status">Ваш хід (X)</div>
 
         <div class="board" id="board">
             <button class="cell" onclick="makeMove(0)"></button>
@@ -185,24 +198,31 @@
             tg.ready();
         }
 
-        // Підключення TON Connect у секретній кімнаті
         const tonConnectUI = new TON_CONNECT_UI.TonConnectUI({
             manifestUrl: 'https://gansgajder-web.github.io/Para/tonconnect-manifest.json',
             buttonRootId: 'ton-connect-btn'
         });
 
         let board = ["", "", "", "", "", "", "", "", ""];
-        let currentPlayer = "X"; // X починає першим
+        let currentPlayer = "X";
         let isGameActive = true;
+        let gameMode = "bot"; // "bot" або "friend"
 
         const winningConditions = [
-            [0, 1, 2], [3, 4, 5], [6, 7, 8], // Рядки
-            [0, 3, 6], [1, 4, 7], [2, 5, 8], // Стовпчики
-            [0, 4, 8], [2, 4, 6]            // Діагоналі
+            [0, 1, 2], [3, 4, 5], [6, 7, 8],
+            [0, 3, 6], [1, 4, 7], [2, 5, 8],
+            [0, 4, 8], [2, 4, 6]
         ];
 
         const statusDisplay = document.getElementById('status');
         const cells = document.querySelectorAll('.cell');
+
+        function setMode(mode) {
+            gameMode = mode;
+            document.getElementById('btn-bot').classList.toggle('active', mode === 'bot');
+            document.getElementById('btn-friend').classList.toggle('active', mode === 'friend');
+            resetGame();
+        }
 
         function makeMove(index) {
             if (board[index] !== "" || !isGameActive) return;
@@ -211,7 +231,55 @@
             cells[index].innerText = currentPlayer;
             cells[index].classList.add(currentPlayer.toLowerCase());
 
-            checkResult();
+            if (checkResult()) return;
+
+            if (gameMode === "bot" && currentPlayer === "X") {
+                currentPlayer = "O";
+                statusDisplay.innerText = "Бот думає... 🤔";
+                isGameActive = false;
+                setTimeout(botMove, 500);
+            } else {
+                currentPlayer = currentPlayer === "X" ? "O" : "X";
+                statusDisplay.innerText = `Хід: ${currentPlayer}`;
+            }
+        }
+
+        function botMove() {
+            // Проста та розумна логіка робота
+            let emptyIndices = board.map((val, idx) => val === "" ? idx : null).filter(val => val !== null);
+            
+            if (emptyIndices.length === 0) return;
+
+            // 1. Перевірити, чи може Бот виграти цим ходом
+            let move = findWinningMove("O");
+            // 2. Якщо ні, перевірити, чи треба заблокувати виграш гравця
+            if (move === null) move = findWinningMove("X");
+            // 3. Інакше зробити вибір центру або випадковий хід
+            if (move === null && board[4] === "") move = 4;
+            if (move === null) move = emptyIndices[Math.floor(Math.random() * emptyIndices.length)];
+
+            board[move] = "O";
+            cells[move].innerText = "O";
+            cells[move].classList.add("o");
+
+            isGameActive = true;
+            if (!checkResult()) {
+                currentPlayer = "X";
+                statusDisplay.innerText = "Ваш хід (X)";
+            }
+        }
+
+        function findWinningMove(player) {
+            for (let condition of winningConditions) {
+                const [a, b, c] = condition;
+                const values = [board[a], board[b], board[c]];
+                if (values.filter(v => v === player).length === 2 && values.includes("")) {
+                    if (board[a] === "") return a;
+                    if (board[b] === "") return b;
+                    if (board[c] === "") return c;
+                }
+            }
+            return null;
         }
 
         function checkResult() {
@@ -227,26 +295,29 @@
             }
 
             if (roundWon) {
-                statusDisplay.innerText = `Перемогли ${currentPlayer === "X" ? "Хрестики (X)" : "Нулики (O)"}! 🎉`;
+                if (gameMode === "bot") {
+                    statusDisplay.innerText = currentPlayer === "X" ? "Ви перемогли Бота! 🎉" : "Переміг Бот! 🤖";
+                } else {
+                    statusDisplay.innerText = `Перемогли ${currentPlayer === "X" ? "Хрестики (X)" : "Нулики (O)"}! 🎉`;
+                }
                 isGameActive = false;
-                return;
+                return true;
             }
 
             if (!board.includes("")) {
                 statusDisplay.innerText = "Нічия! 🤝";
                 isGameActive = false;
-                return;
+                return true;
             }
 
-            currentPlayer = currentPlayer === "X" ? "O" : "X";
-            statusDisplay.innerText = `Хід гравця: ${currentPlayer === "X" ? "Х (Хрестики)" : "О (Нулики)"}`;
+            return false;
         }
 
         function resetGame() {
             board = ["", "", "", "", "", "", "", "", ""];
             isGameActive = true;
             currentPlayer = "X";
-            statusDisplay.innerText = "Хід гравця: Х (Хрестики)";
+            statusDisplay.innerText = gameMode === "bot" ? "Ваш хід (X)" : "Хід: X";
             
             cells.forEach(cell => {
                 cell.innerText = "";

@@ -8,7 +8,7 @@
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <!-- Supabase JS -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <!-- Офіційна бібліотека TON Connect UI -->
+    <!-- TON Connect UI SDK -->
     <script src="https://unpkg.com/@tonconnect/ui@latest/dist/tonconnect-ui.min.js"></script>
 
     <style>
@@ -70,7 +70,7 @@
             align-items: center;
             justify-content: center;
             font-weight: bold;
-            font-size: 15px;
+            font-size: 16px;
             flex-shrink: 0;
             text-transform: uppercase;
         }
@@ -78,7 +78,7 @@
             flex: 1;
         }
         .username {
-            font-size: 12px;
+            font-size: 13px;
             font-weight: bold;
             color: #64b5f6;
             margin-bottom: 4px;
@@ -144,7 +144,6 @@
     <div class="header">
         <h1>PapaChat</h1>
         <div class="header-actions">
-            <!-- Кнопка авторизації TON Connect -->
             <div id="ton-connect-btn"></div>
         </div>
     </div>
@@ -165,11 +164,15 @@
             tg.ready();
         }
 
+        // Беремо ім'я користувача з Telegram
+        const tgUser = tg?.initDataUnsafe?.user;
+        const myTelegramName = tgUser ? (tgUser.first_name + (tgUser.last_name ? ' ' + tgUser.last_name : '')) : null;
+
         const SUPABASE_URL = 'https://hsboeykzidkilprcpyey.supabase.co';
         const SUPABASE_KEY = 'sb_publishable_itYl4wIpMrcdLLHyeaEoXw_7ajw1483';
         const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-        // ВІДПРАВНИЙ ПРАВИЛЬНИЙ МАНІФЕСТ
+        // Маніфест TON Connect
         const tonConnectUI = new TON_CONNECT_UI.TonConnectUI({
             manifestUrl: 'https://gansgajder-web.github.io/Para/tonconnect-manifest.json',
             buttonRootId: 'ton-connect-btn'
@@ -177,7 +180,6 @@
 
         let currentWalletAddress = null;
 
-        // Слідкуємо за авторизацією гаманця
         tonConnectUI.onStatusChange(wallet => {
             if (wallet) {
                 currentWalletAddress = wallet.account.address;
@@ -188,7 +190,7 @@
         });
 
         function formatAddress(addr) {
-            if (!addr) return "Гість";
+            if (!addr) return "";
             return addr.substring(0, 4) + '...' + addr.substring(addr.length - 4);
         }
 
@@ -216,20 +218,19 @@
                     const div = document.createElement('div');
                     div.className = 'message';
 
-                    const authorWallet = msg.wallet || msg.author;
-                    const displayName = authorWallet && authorWallet.length > 10 ? formatAddress(authorWallet) : (msg.author || 'Учасник');
+                    const authorName = msg.author || 'Учасник';
 
                     const avatar = document.createElement('div');
                     avatar.className = 'avatar';
-                    avatar.style.backgroundColor = getRandomColor(displayName);
-                    avatar.innerText = displayName[0].toUpperCase();
+                    avatar.style.backgroundColor = getRandomColor(authorName);
+                    avatar.innerText = authorName[0].toUpperCase();
 
                     const content = document.createElement('div');
                     content.className = 'msg-content';
 
                     const author = document.createElement('div');
                     author.className = 'username';
-                    author.innerText = displayName;
+                    author.innerText = authorName;
 
                     const text = document.createElement('div');
                     text.className = 'message-text';
@@ -244,7 +245,7 @@
                     likeBtn.innerHTML = `❤️ <span>${likesCount}</span>`;
                     likeBtn.onclick = () => addLike(msg.id, likesCount);
 
-                    const targetWallet = msg.wallet || "UQDXq1iAqu88tVRG62_k03kAXELu_1gzRBMye-VZoFRIRtWw";
+                    const targetWallet = "UQDXq1iAqu88tVRG62_k03kAXELu_1gzRBMye-VZoFRIRtWw";
                     const helpBtn = document.createElement('button');
                     helpBtn.className = 'action-btn donate-msg-btn';
                     helpBtn.innerHTML = `💸 Підтримати`;
@@ -270,27 +271,26 @@
             const text = input.value.trim();
             if (!text) return;
 
-            if (!currentWalletAddress) {
-                if (tg?.showAlert) {
-                    tg.showAlert("Підключіть ваш TON-гаманець у правому верхньому кутку перед відправкою!");
-                } else {
-                    alert("Підключіть ваш TON-гаманець!");
-                }
-                return;
+            // Формуємо ім'я автора: Ім'я з Telegram + Гаманець
+            let finalAuthor = myTelegramName || 'Михайло';
+            if (currentWalletAddress) {
+                finalAuthor += ` (${formatAddress(currentWalletAddress)})`;
             }
 
+            // Відправляємо в Supabase сумісні колонки (text, likes, author)
             const { error } = await supabaseClient
                 .from('messages')
                 .insert([{
                     text: text,
                     likes: 0,
-                    author: formatAddress(currentWalletAddress),
-                    wallet: currentWalletAddress
+                    author: finalAuthor
                 }]);
 
             if (!error) {
                 input.value = '';
                 loadMessages();
+            } else {
+                console.error("Помилка відправки:", error);
             }
         }
 

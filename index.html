@@ -4,9 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Анонімний чат & Донати в TON</title>
-    <!-- TON Connect UI SDK -->
     <script src="https://unpkg.com/@tonconnect/ui@latest/dist/tonconnect-ui.min.js"></script>
-    <!-- Supabase JS Client SDK -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
         body {
@@ -118,13 +116,11 @@
 </div>
 
 <script>
-    // Підключення до Supabase (PapaChat)
     const SUPABASE_URL = 'https://hsboeykzidkilprcpyey.supabase.co';
     const SUPABASE_ANON_KEY = 'Sb_publishable_itYl4wIpMrcdLLHyeaEoXw_7ajw1483';
 
     const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-    // Ініціалізація TON Connect
     const tonConnectUI = new TON_Connect_UI.TonConnectUI({
         manifestUrl: 'https://gansgajder-web.github.io/Para/tonconnect-manifest.json',
         buttonRootId: 'ton-connect-button'
@@ -135,7 +131,6 @@
         currentWallet = wallet ? wallet.account.address : null;
     });
 
-    // Завантаження повідомлень з бази
     async function fetchMessages() {
         const { data, error } = await supabase
             .from('messages')
@@ -159,7 +154,6 @@
         chatBox.scrollTop = chatBox.scrollHeight;
     }
 
-    // Відображення одного повідомлення
     function renderMessage(msg) {
         const chatBox = document.getElementById('chatBox');
         const loader = document.getElementById('loader');
@@ -184,7 +178,6 @@
         chatBox.scrollTop = chatBox.scrollHeight;
     }
 
-    // Відправка повідомлення
     async function sendMessage() {
         const textInput = document.getElementById('messageInput');
         const text = textInput.value.trim();
@@ -200,7 +193,6 @@
         if (error) console.error("Помилка відправки:", error);
     }
 
-    // Лайк повідомлення
     async function likeMessage(id, currentLikes) {
         await supabase
             .from('messages')
@@ -208,7 +200,6 @@
             .eq('id', id);
     }
 
-    // Донат через TON Connect
     async function donateTON(recipientAddress) {
         if (!tonConnectUI.connected) {
             alert("Будь ласка, підключіть ваш TON-гаманець зверху!");
@@ -224,7 +215,7 @@
             messages: [
                 {
                     address: targetAddress,
-                    amount: "100000000" // 0.1 TON (в нанокоінах)
+                    amount: "100000000"
                 }
             ]
         };
@@ -237,7 +228,6 @@
         }
     }
 
-    // Realtime підписка (оновлення чату без перезавантаження)
     supabase
         .channel('public:messages')
         .on('postgres_changes', { event: '*', schema: 'public', table: 'messages' }, payload => {
@@ -245,12 +235,10 @@
         })
         .subscribe();
 
-    // Захист від XSS
     function escapeHtml(text) {
         return text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
     }
 
-    // Старт
     fetchMessages();
 </script>
 

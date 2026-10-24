@@ -1,250 +1,121 @@
 <!DOCTYPE html>
 <html lang="uk">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Анонімний чат & Донати в TON</title>
-    <script src="https://unpkg.com/@tonconnect/ui@latest/dist/tonconnect-ui.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <style>
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-            background-color: #0f172a;
-            color: #f8fafc;
-            margin: 0;
-            padding: 15px;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-        }
-        .container {
-            width: 100%;
-            max-width: 600px;
-            background: #1e293b;
-            padding: 20px;
-            border-radius: 16px;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.5);
-            box-sizing: border-box;
-        }
-        header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 20px;
-            flex-wrap: wrap;
-            gap: 10px;
-        }
-        h2 { margin: 0; font-size: 18px; }
-        .chat-box {
-            background: #0f172a;
-            border-radius: 12px;
-            height: 380px;
-            padding: 12px;
-            overflow-y: auto;
-            margin-bottom: 15px;
-            border: 1px solid #334155;
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
-        }
-        .msg-card {
-            background: #1e293b;
-            padding: 12px;
-            border-radius: 10px;
-            border-left: 4px solid #38bdf8;
-            position: relative;
-        }
-        .msg-text { font-size: 15px; margin-bottom: 8px; word-break: break-word; }
-        .msg-footer {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            font-size: 12px;
-            color: #94a3b8;
-        }
-        .actions { display: flex; gap: 8px; }
-        .btn-action {
-            background: #334155;
-            border: none;
-            color: #fff;
-            padding: 4px 8px;
-            border-radius: 6px;
-            cursor: pointer;
-            font-size: 12px;
-        }
-        .btn-action:hover { background: #475569; }
-        .input-group { display: flex; gap: 10px; }
-        textarea {
-            flex: 1;
-            background: #0f172a;
-            border: 1px solid #334155;
-            color: #fff;
-            padding: 10px;
-            border-radius: 8px;
-            resize: none;
-            height: 40px;
-        }
-        button.send-btn {
-            background: #38bdf8;
-            color: #0f172a;
-            border: none;
-            padding: 0 16px;
-            border-radius: 8px;
-            font-weight: bold;
-            cursor: pointer;
-        }
-    </style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PapaChat</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #f0f2f5; display: flex; justify-content: center; height: 100vh; }
+    .chat-container { width: 100%; max-width: 500px; background: #fff; display: flex; flex-direction: column; height: 100vh; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
+    .chat-header { background: #0084ff; color: #fff; padding: 15px; text-align: center; font-weight: bold; font-size: 1.2rem; }
+    .messages-list { flex: 1; overflow-y: auto; padding: 15px; display: flex; flex-direction: column; gap: 10px; }
+    .message-item { max-width: 80%; padding: 10px 14px; border-radius: 15px; background: #e4e6eb; color: #050505; align-self: flex-start; word-wrap: break-word; }
+    .message-item.my-message { background: #0084ff; color: #fff; align-self: flex-end; }
+    .message-author { font-size: 0.75rem; opacity: 0.7; margin-bottom: 3px; font-weight: bold; }
+    .chat-input-area { padding: 10px; display: flex; gap: 8px; border-top: 1px solid #ddd; background: #fff; }
+    .chat-input-area input { flex: 1; padding: 12px; border: 1px solid #ccc; border-radius: 20px; outline: none; font-size: 1rem; }
+    .chat-input-area button { background: #0084ff; color: #fff; border: none; padding: 0 18px; border-radius: 20px; font-weight: bold; cursor: pointer; }
+    .name-modal { position: fixed; inset: 0; background: rgba(0,0,0,0.6); display: flex; justify-content: center; align-items: center; padding: 20px; }
+    .modal-content { background: #fff; padding: 25px; border-radius: 12px; width: 100%; max-width: 350px; text-align: center; }
+    .modal-content input { width: 100%; padding: 10px; margin: 15px 0; border: 1px solid #ccc; border-radius: 8px; font-size: 1rem; }
+    .modal-content button { width: 100%; padding: 10px; background: #0084ff; color: #fff; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; }
+  </style>
 </head>
 <body>
 
-<div class="container">
-    <header>
-        <h2>💬 Anon Chat (24h TTL)</h2>
-        <div id="ton-connect-button"></div>
-    </header>
-
-    <div class="chat-box" id="chatBox">
-        <div style="color: #64748b; text-align: center; margin-top: 150px;" id="loader">
-            Завантаження повідомлень...
-        </div>
+  <div class="chat-container">
+    <div class="chat-header">PapaChat</div>
+    <div class="messages-list" id="messagesList"></div>
+    <div class="chat-input-area">
+      <input type="text" id="messageInput" placeholder="Напишіть повідомлення..." onkeypress="handleKeyPress(event)">
+      <button onclick="sendMessage()">Надіслати</button>
     </div>
+  </div>
 
-    <div class="input-group">
-        <textarea id="messageInput" placeholder="Напишіть анонімне повідомлення..."></textarea>
-        <button class="send-btn" onclick="sendMessage()">Надіслати</button>
+  <div class="name-modal" id="nameModal">
+    <div class="modal-content">
+      <h3>Представтеся</h3>
+      <input type="text" id="usernameInput" placeholder="Ваше ім'я...">
+      <button onclick="saveUsername()">Увійти в чат</button>
     </div>
-</div>
+  </div>
 
-<script>
-    const SUPABASE_URL = 'https://hsboeykzidkilprcpyey.supabase.co';
-    const SUPABASE_ANON_KEY = 'Sb_publishable_itYl4wIpMrcdLLHyeaEoXw_7ajw1483';
+  <script>
+    const SUPABASE_URL = "https://hsboeykzidkilprcpyey.supabase.co";
+    const SUPABASE_KEY = "Sb_publishable_itYl4wIpMrcdLLHyeaEoXw_7ajw1483";
+    const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-    const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    let currentUsername = localStorage.getItem("papachat_user") || "";
 
-    const tonConnectUI = new TON_Connect_UI.TonConnectUI({
-        manifestUrl: 'https://gansgajder-web.github.io/Para/tonconnect-manifest.json',
-        buttonRootId: 'ton-connect-button'
-    });
-
-    let currentWallet = null;
-    tonConnectUI.onStatusChange(wallet => {
-        currentWallet = wallet ? wallet.account.address : null;
-    });
-
-    async function fetchMessages() {
-        try {
-            const { data, error } = await supabase
-                .from('messages')
-                .select('*')
-                .order('created_at', { ascending: true });
-
-            const chatBox = document.getElementById('chatBox');
-
-            if (error) {
-                console.error('Supabase error:', error);
-                chatBox.innerHTML = `<div style="color: #ef4444; text-align: center; margin-top: 140px; padding: 10px;">Помилка підключення:<br>${error.message}</div>`;
-                return;
-            }
-
-            chatBox.innerHTML = '';
-
-            if (!data || data.length === 0) {
-                chatBox.innerHTML = '<div style="color: #64748b; text-align: center; margin-top: 150px;">Поки немає повідомлень. Напишіть першим!</div>';
-                return;
-            }
-
-            data.forEach(msg => renderMessage(msg));
-            chatBox.scrollTop = chatBox.scrollHeight;
-        } catch (err) {
-            console.error('Fetch error:', err);
-        }
+    if (currentUsername) {
+      document.getElementById("nameModal").style.display = "none";
     }
 
-    function renderMessage(msg) {
-        const chatBox = document.getElementById('chatBox');
-        const loader = document.getElementById('loader');
-        if (loader) loader.remove();
+    function saveUsername() {
+      const name = document.getElementById("usernameInput").value.trim();
+      if (name) {
+        currentUsername = name;
+        localStorage.setItem("papachat_user", name);
+        document.getElementById("nameModal").style.display = "none";
+      }
+    }
 
-        const timeStr = new Date(msg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    async function fetchMessages() {
+      const { data, error } = await supabaseClient
+        .from('messages')
+        .select('*')
+        .order('id', { ascending: true });
 
-        const card = document.createElement('div');
-        card.className = 'msg-card';
-        card.id = `msg-${msg.id}`;
-        card.innerHTML = `
-            <div class="msg-text">${escapeHtml(msg.text)}</div>
-            <div class="msg-footer">
-                <span>🕒 ${timeStr}</span>
-                <div class="actions">
-                    <button class="btn-action" onclick="likeMessage(${msg.id}, ${msg.likes})">❤️ ${msg.likes || 0}</button>
-                    <button class="btn-action" style="background: #0284c7;" onclick="donateTON('${msg.author_wallet}')">💎 Донат TON</button>
-                </div>
-            </div>
-        `;
-        chatBox.appendChild(card);
-        chatBox.scrollTop = chatBox.scrollHeight;
+      if (!error && data) {
+        const list = document.getElementById("messagesList");
+        list.innerHTML = "";
+        data.forEach(msg => appendMessage(msg));
+        list.scrollTop = list.scrollHeight;
+      }
+    }
+
+    function appendMessage(msg) {
+      const list = document.getElementById("messagesList");
+      const div = document.createElement("div");
+      const isMe = msg.user_name === currentUsername;
+
+      div.className = `message-item ${isMe ? 'my-message' : ''}`;
+      div.innerHTML = `
+        <div class="message-author">${escapeHtml(msg.user_name || 'Анонім')}</div>
+        <div class="message-text">${escapeHtml(msg.text || '')}</div>
+      `;
+      list.appendChild(div);
+      list.scrollTop = list.scrollHeight;
     }
 
     async function sendMessage() {
-        const textInput = document.getElementById('messageInput');
-        const text = textInput.value.trim();
-        if (!text) return;
+      const input = document.getElementById("messageInput");
+      const text = input.value.trim();
+      if (!text || !currentUsername) return;
 
-        textInput.value = '';
-
-        const { error } = await supabase.from('messages').insert([{
-            text: text,
-            author_wallet: currentWallet
-        }]);
-
-        if (error) {
-            alert('Помилка надсилання: ' + error.message);
-        } else {
-            fetchMessages();
-        }
+      input.value = "";
+      await supabaseClient.from('messages').insert([{ user_name: currentUsername, text: text }]);
     }
 
-    async function likeMessage(id, currentLikes) {
-        await supabase
-            .from('messages')
-            .update({ likes: (currentLikes || 0) + 1 })
-            .eq('id', id);
-        fetchMessages();
-    }
-
-    async function donateTON(recipientAddress) {
-        if (!tonConnectUI.connected) {
-            alert("Будь ласка, підключіть ваш TON-гаманець зверху!");
-            return;
-        }
-
-        const targetAddress = recipientAddress && recipientAddress !== 'null' 
-            ? recipientAddress 
-            : 'EQD...ВАШ_ГАМАНЕЦЬ_ДЛЯ_ЗАГАЛЬНИХ_ДОНАТІВ...';
-
-        const transaction = {
-            validUntil: Math.floor(Date.now() / 1000) + 60,
-            messages: [
-                {
-                    address: targetAddress,
-                    amount: "100000000"
-                }
-            ]
-        };
-
-        try {
-            await tonConnectUI.sendTransaction(transaction);
-            alert("Дякуємо за підтримку! Донат відправлено 🎉");
-        } catch (e) {
-            console.error("Помилка транзакції:", e);
-        }
+    function handleKeyPress(e) {
+      if (e.key === 'Enter') sendMessage();
     }
 
     function escapeHtml(text) {
-        return text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+      return text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
     }
 
-    fetchMessages();
-</script>
+    // Підписка на реальний час (Realtime)
+    supabaseClient
+      .channel('public:messages')
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages' }, payload => {
+        appendMessage(payload.new);
+      })
+      .subscribe();
 
+    fetchMessages();
+  </script>
 </body>
 </html>

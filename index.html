@@ -8,7 +8,7 @@
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <!-- Supabase JS -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <!-- TON Connect UI SDK (Підтримка всіх гаманців) -->
+    <!-- Офіційна бібліотека TON Connect UI -->
     <script src="https://unpkg.com/@tonconnect/ui@latest/dist/tonconnect-ui.min.js"></script>
 
     <style>
@@ -144,13 +144,13 @@
     <div class="header">
         <h1>PapaChat</h1>
         <div class="header-actions">
-            <!-- Офіційна кнопка TON Connect з вибором будь-якого гаманця -->
+            <!-- Кнопка авторизації TON Connect -->
             <div id="ton-connect-btn"></div>
         </div>
     </div>
 
     <div id="chat-container">
-        <!-- Повідомлення -->
+        <!-- Стрічка повідомлень -->
     </div>
 
     <div class="input-container">
@@ -169,15 +169,15 @@
         const SUPABASE_KEY = 'sb_publishable_itYl4wIpMrcdLLHyeaEoXw_7ajw1483';
         const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-        // Ініціалізація TON Connect з налаштуваннями
+        // ВІДПРАВНИЙ ПРАВИЛЬНИЙ МАНІФЕСТ
         const tonConnectUI = new TON_CONNECT_UI.TonConnectUI({
-            manifestUrl: 'https://gansgajder-web.github.io/manifest.json',
+            manifestUrl: 'https://gansgajder-web.github.io/Para/tonconnect-manifest.json',
             buttonRootId: 'ton-connect-btn'
         });
 
         let currentWalletAddress = null;
 
-        // Слідкуємо за статусом підключення гаманця
+        // Слідкуємо за авторизацією гаманця
         tonConnectUI.onStatusChange(wallet => {
             if (wallet) {
                 currentWalletAddress = wallet.account.address;
@@ -270,12 +270,11 @@
             const text = input.value.trim();
             if (!text) return;
 
-            // Перевіряємо, чи підключив користувач гаманець
             if (!currentWalletAddress) {
                 if (tg?.showAlert) {
-                    tg.showAlert("Для відправки повідомлення підключіть ваш TON-гаманець у верхньому правому кутку!");
+                    tg.showAlert("Підключіть ваш TON-гаманець у правому верхньому кутку перед відправкою!");
                 } else {
-                    alert("Підключіть ваш TON-гаманець у верхньому правому кутку!");
+                    alert("Підключіть ваш TON-гаманець!");
                 }
                 return;
             }
@@ -305,7 +304,6 @@
         }
 
         async function handleDonate(walletAddress) {
-            // Якщо гаманець підключений через TON Connect — відправляємо транзакцію в один клік
             if (tonConnectUI.connected) {
                 try {
                     const transaction = {
@@ -313,16 +311,15 @@
                         messages: [
                             {
                                 address: walletAddress,
-                                amount: "100000000" // 0.1 TON (можна змінити)
+                                amount: "100000000" // 0.1 TON
                             }
                         ]
                     };
                     await tonConnectUI.sendTransaction(transaction);
                 } catch (e) {
-                    console.log("Транзакцію скасовано або виникла помилка", e);
+                    console.log("Скасовано або помилка", e);
                 }
             } else {
-                // Якщо не підключено — копіюємо та відкриваємо Telegram Wallet
                 if (navigator.clipboard) {
                     navigator.clipboard.writeText(walletAddress);
                 }

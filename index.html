@@ -146,6 +146,7 @@
     <div class="header">
         <h1>PapaChat</h1>
         <div class="header-actions">
+            <!-- Кнопка авторизації TON Connect -->
             <div id="ton-connect-btn"></div>
         </div>
     </div>
@@ -166,15 +167,15 @@
             tg.ready();
         }
 
-        // Беремо дані профілю з Telegram
+        // Отримання імені з Telegram SDK
         const tgUser = tg?.initDataUnsafe?.user;
-        const telegramName = tgUser ? (tgUser.first_name + (tgUser.last_name ? ' ' + tgUser.last_name : '')) : 'Михайло';
-        const userPhoto = tgUser?.photo_url || null; // Фотографія з Telegram
+        let myTelegramName = tgUser ? (tgUser.first_name + (tgUser.last_name ? ' ' + tgUser.last_name : '')) : '';
 
         const SUPABASE_URL = 'https://hsboeykzidkilprcpyey.supabase.co';
         const SUPABASE_KEY = 'sb_publishable_itYl4wIpMrcdLLHyeaEoXw_7ajw1483';
         const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
+        // Маніфест TON Connect
         const tonConnectUI = new TON_CONNECT_UI.TonConnectUI({
             manifestUrl: 'https://gansgajder-web.github.io/Para/tonconnect-manifest.json',
             buttonRootId: 'ton-connect-btn'
@@ -224,15 +225,8 @@
 
                     const avatar = document.createElement('div');
                     avatar.className = 'avatar';
-
-                    // Якщо у нас збережене фото профілю Telegram — показуємо його, інакше кольорове коло
-                    if (userPhoto && msg.author && msg.author.includes(telegramName)) {
-                        avatar.style.backgroundImage = `url('${userPhoto}')`;
-                        avatar.innerText = '';
-                    } else {
-                        avatar.style.backgroundColor = getRandomColor(authorName);
-                        avatar.innerText = authorName[0].toUpperCase();
-                    }
+                    avatar.style.backgroundColor = getRandomColor(authorName);
+                    avatar.innerText = authorName[0].toUpperCase();
 
                     const content = document.createElement('div');
                     content.className = 'msg-content';
@@ -280,9 +274,15 @@
             const text = input.value.trim();
             if (!text) return;
 
-            let authorName = telegramName;
-            if (connectedAddress) {
-                authorName = `${telegramName} (${formatAddress(connectedAddress)})`;
+            // Формуємо ім'я: спочатку шукаємо Telegram-ім'я, якщо немає — скорочену адресу TON
+            let finalName = myTelegramName;
+            
+            if (!finalName && connectedAddress) {
+                finalName = formatAddress(connectedAddress);
+            } else if (finalName && connectedAddress) {
+                finalName = `${finalName} (${formatAddress(connectedAddress)})`;
+            } else if (!finalName) {
+                finalName = "Михайло";
             }
 
             const { error } = await supabaseClient
@@ -290,7 +290,7 @@
                 .insert([{
                     text: text,
                     likes: 0,
-                    author: authorName
+                    author: finalName
                 }]);
 
             input.value = '';
@@ -327,7 +327,7 @@
                     navigator.clipboard.writeText(walletAddress);
                 }
                 if (tg?.showAlert) {
-                    tg.showAlert(`Спочатку підключіть TON-гаманець, або скористайтеся скопійованою адресою:\n\n${walletAddress}`);
+                    tg.showAlert(`Спочатку підключіть TON-гаманець у верхньому кутку, або скористайтеся скопійованою адресою:\n\n${walletAddress}`);
                 }
             }
         }

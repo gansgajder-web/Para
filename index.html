@@ -149,6 +149,7 @@
             gap: 3px;
             padding: 3px 8px;
             border-radius: 6px;
+            text-decoration: none;
         }
         .action-btn:hover {
             background: rgba(255, 255, 255, 0.1);
@@ -431,11 +432,11 @@
                     reactions.appendChild(pmBtn);
                     reactions.appendChild(shareBtn);
 
-                    // «Потаємні двері» (оплата 0.01 TON на OWNER_WALLET з переходом на game.html)
-                    const secretDoorBtn = document.createElement('button');
+                    // Звичайні вільні «двері» замість донату — пряме посилання на game.html
+                    const secretDoorBtn = document.createElement('a');
                     secretDoorBtn.className = 'action-btn secret-door-btn';
-                    secretDoorBtn.innerHTML = `🚪 0.01 TON (Гра)`;
-                    secretDoorBtn.onclick = () => openSecretDoor();
+                    secretDoorBtn.href = 'game.html';
+                    secretDoorBtn.innerHTML = `🚪 Двері`;
 
                     footer.appendChild(reactions);
                     footer.appendChild(secretDoorBtn);
@@ -461,32 +462,10 @@
 
         async function startPrivateMessage(msgId, authorName) {
             if (!tonConnectUI.connected) {
-                if (tg?.showAlert) tg.showAlert("Підключіть гаманець TON для оплати приватного повідомлення (0.01 TON).");
+                if (tg?.showAlert) tg.showAlert("Підключіть гаманець TON для відправки приватного повідомлення.");
                 return;
             }
-            
-            const success = await handleDonate(OWNER_WALLET, "10000000");
-            if (success) {
-                setReplyTo(msgId, authorName, true);
-            }
-        }
-
-        // Функція «Потаємних дверей» до гри game.html за донат на адмін-гаманець
-        async function openSecretDoor() {
-            if (!tonConnectUI.connected) {
-                if (tg?.showAlert) {
-                    tg.showAlert("Підключіть гаманець TON, щоб відкрити потаємні двері до гри (0.01 TON).");
-                } else {
-                    alert("Підключіть гаманець TON.");
-                }
-                return;
-            }
-
-            const success = await handleDonate(OWNER_WALLET, "10000000");
-            if (success) {
-                // Перенаправляємо на сторінку гри
-                window.location.href = "game.html";
-            }
+            setReplyTo(msgId, authorName, true);
         }
 
         function cancelReply() {
@@ -576,25 +555,6 @@
                 .eq('id', id);
 
             if (!error) loadMessages();
-        }
-
-        async function handleDonate(walletAddress, nanoAmount) {
-            try {
-                const transaction = {
-                    validUntil: Math.floor(Date.now() / 1000) + 180,
-                    messages: [
-                        {
-                            address: walletAddress,
-                            amount: nanoAmount
-                        }
-                    ]
-                };
-                await tonConnectUI.sendTransaction(transaction);
-                return true;
-            } catch (e) {
-                console.log("Скасовано або помилка", e);
-                return false;
-            }
         }
 
         loadMessages();

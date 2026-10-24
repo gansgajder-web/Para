@@ -155,6 +155,12 @@
             border-color: rgba(0, 136, 204, 0.3);
             font-weight: bold;
         }
+        .pm-btn {
+            color: #ffd54f;
+            background: rgba(255, 213, 79, 0.15);
+            border-color: rgba(255, 213, 79, 0.3);
+            font-weight: bold;
+        }
         #reply-preview-container {
             display: none;
             background: #252830;
@@ -222,7 +228,7 @@
     </div>
 
     <div id="reply-preview-container">
-        <div>↩️ Відповідь на: <span id="reply-to-author" style="font-weight: bold; color: #64b5f6;"></span></div>
+        <div><span id="reply-label">↩️ Відповідь на:</span> <span id="reply-to-author" style="font-weight: bold; color: #64b5f6;"></span></div>
         <button class="cancel-reply" onclick="cancelReply()">✕</button>
     </div>
 
@@ -232,6 +238,8 @@
     </div>
 
     <script>
+        const OWNER_WALLET = "UQDXq1iAqu88tVRG62_k03kAXELu_1gzRBMye-VZoFRIRtWw";
+
         const tg = window.Telegram?.WebApp;
         if (tg) {
             tg.expand();
@@ -255,7 +263,7 @@
 
         let connectedAddress = null;
         let replyingToId = null;
-        let replyingToData = null;
+        let isPrivateMode = false;
 
         tonConnectUI.onStatusChange(wallet => {
             if (wallet) {
@@ -357,7 +365,6 @@
                     const text = document.createElement('div');
                     text.className = 'message-text';
                     
-                    // Перетворення звичайних посилань на клікабельні лінки
                     let rawText = msg.text || '';
                     const urlRegex = /(https?:\/\/[^\s]+)/g;
                     text.innerHTML = rawText.replace(urlRegex, '<a href="$1" target="_blank" style="color: #64b5f6; text-decoration: underline;">$1</a>');
@@ -385,7 +392,12 @@
                     const replyBtn = document.createElement('button');
                     replyBtn.className = 'action-btn';
                     replyBtn.innerHTML = `↩️ Відповісти`;
-                    replyBtn.onclick = () => setReplyTo(msg.id, authorName, msg.text);
+                    replyBtn.onclick = () => setReplyTo(msg.id, authorName, false);
+
+                    const pmBtn = document.createElement('button');
+                    pmBtn.className = 'action-btn pm-btn';
+                    pmBtn.innerHTML = `📩 Приватне`;
+                    pmBtn.onclick = () => startPrivateMessage(msg.id, authorName);
 
                     const shareBtn = document.createElement('button');
                     shareBtn.className = 'action-btn';
@@ -395,16 +407,27 @@
                     reactions.appendChild(likeBtn);
                     reactions.appendChild(dislikeBtn);
                     reactions.appendChild(replyBtn);
+                    reactions.appendChild(pmBtn);
                     reactions.appendChild(shareBtn);
 
-                    const targetWallet = "UQDXq1iAqu88tVRG62_k03kAXELu_1gzRBMye-VZoFRIRtWw";
-                    const helpBtn = document.createElement('button');
-                    helpBtn.className = 'action-btn donate-msg-btn';
-                    helpBtn.innerHTML = `💸 0.01 TON`;
-                    helpBtn.onclick = () => handleDonate(targetWallet, "10000000");
+                    // Донат автору тексту
+                    const authorWallet = msg.author_wallet;
+                    const donateBtn = document.createElement('button');
+                    donateBtn.className = 'action-btn donate-msg-btn';
+                    donateBtn.innerHTML = `💸 0.01 TON`;
+                    
+                    if (authorWallet) {
+                        donateBtn.onclick = () => handleDonate(authorWallet, "10000000", "Донат автору допису");
+                    } else {
+                        donateBtn.style.opacity = '0.5';
+                        donateBtn.title = 'Автор не підключив гаманець';
+                        donateBtn.onclick = () => {
+                            if (tg?.showAlert) tg.showAlert("У автора допису ще не підключено гаманець TON.");
+                        };
+                    }
 
                     footer.appendChild(reactions);
-                    footer.appendChild(helpBtn);
+                    footer.appendChild(donateBtn);
                     content.appendChild(footer);
 
                     div.appendChild(avatar);
@@ -416,15 +439,31 @@
             }
         }
 
-        function setReplyTo(id, authorName, textSnippet) {
+        function setReplyTo(id, authorName, privateFlag = false) {
             replyingToId = id;
+            isPrivateMode = privateFlag;
+            document.getElementById('reply-label').innerText = privateFlag ? "📩 Приватне повідомлення для:" : "↩️ Відповідь на:";
             document.getElementById('reply-to-author').innerText = authorName;
             document.getElementById('reply-preview-container').classList.add('active');
             document.getElementById('message-input').focus();
         }
 
+        async function startPrivateMessage(msgId, authorName) {
+            if (!tonConnectUI.connected) {
+                if (tg?.showAlert) tg.showAlert("Підключіть гаманець TON для оплати приватного повідомлення (0.01 TON).");
+                return;
+            }
+            
+            // Оплата 0.01 TON власнику журналу за приватне повідомлення
+            const success = await handleDonate(OWNER_WALLET, "10000000", "Оплата приватного повідомлення");
+            if (success) {
+                setReplyTo(msgId, authorName, true);
+            }
+        }
+
         function cancelReply() {
             replyingToId = null;
+            isPrivateMode = false;
             document.getElementById('reply-preview-container').classList.remove('active');
         }
 
@@ -478,10 +517,11 @@
             }
 
             const insertData = {
-                text: text,
+                text: isPrivateMode ? `[🔒 Приватне]: ${text}` : text,
                 likes: 0,
                 dislikes: 0,
-                author: authorName
+                author: authorName,
+                author_wallet: connectedAddress || null
             };
 
             if (replyingToId) {
@@ -509,7 +549,7 @@
             if (!error) loadMessages();
         }
 
-        async function handleDonate(walletAddress, nanoAmount) {
+        async function handleDonate(walletAddress, nanoAmount, comment = "") {
             if (tonConnectUI.connected) {
                 try {
                     const transaction = {
@@ -522,8 +562,10 @@
                         ]
                     };
                     await tonConnectUI.sendTransaction(transaction);
+                    return true;
                 } catch (e) {
                     console.log("Скасовано або помилка", e);
+                    return false;
                 }
             } else {
                 if (navigator.clipboard) {
@@ -532,6 +574,7 @@
                 if (tg?.showAlert) {
                     tg.showAlert(`Адресу скопійовано у буфер обміну:\n\n${walletAddress}`);
                 }
+                return false;
             }
         }
 

@@ -72,16 +72,27 @@
             font-weight: bold;
             font-size: 16px;
             flex-shrink: 0;
+            background-size: cover;
+            background-position: center;
             text-transform: uppercase;
         }
         .msg-content {
             flex: 1;
         }
+        .msg-header-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 4px;
+        }
         .username {
             font-size: 13px;
             font-weight: bold;
             color: #64b5f6;
-            margin-bottom: 4px;
+        }
+        .msg-time {
+            font-size: 10px;
+            color: #888;
         }
         .message-text {
             word-break: break-word;
@@ -95,21 +106,29 @@
             font-size: 12px;
             margin-top: 4px;
         }
+        .reactions {
+            display: flex;
+            gap: 8px;
+        }
         .action-btn {
-            background: none;
-            border: none;
-            color: #ff5252;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid #333;
+            color: #ccc;
             cursor: pointer;
-            font-size: 12px;
+            font-size: 11px;
             display: flex;
             align-items: center;
-            gap: 4px;
-            padding: 2px 6px;
-            border-radius: 4px;
+            gap: 3px;
+            padding: 3px 8px;
+            border-radius: 6px;
+        }
+        .action-btn:hover {
+            background: rgba(255, 255, 255, 0.1);
         }
         .donate-msg-btn {
-            color: #0088cc;
+            color: #64b5f6;
             background: rgba(0, 136, 204, 0.15);
+            border-color: rgba(0, 136, 204, 0.3);
             font-weight: bold;
         }
         .input-container {
@@ -149,12 +168,12 @@
     </div>
 
     <div id="chat-container">
-        <!-- Стрічка повідомлень -->
+        <!-- Повідомлення -->
     </div>
 
     <div class="input-container">
         <input type="text" id="message-input" placeholder="Введіть повідомлення... 💬">
-        <button onclick="sendMessage()">Надіслати</button>
+        <button id="send-btn" onclick="sendMessage()">Надіслати</button>
     </div>
 
     <script>
@@ -163,6 +182,9 @@
             tg.expand();
             tg.ready();
         }
+
+        const tgUser = tg?.initDataUnsafe?.user;
+        const myTelegramName = tgUser ? (tgUser.first_name + (tgUser.last_name ? ' ' + tgUser.last_name : '')) : 'Михайло';
 
         const SUPABASE_URL = 'https://hsboeykzidkilprcpyey.supabase.co';
         const SUPABASE_KEY = 'sb_publishable_itYl4wIpMrcdLLHyeaEoXw_7ajw1483';
@@ -187,6 +209,11 @@
             loadMessages();
         });
 
+        function formatAddress(addr) {
+            if (!addr) return "";
+            return addr.substring(0, 4) + '...' + addr.substring(addr.length - 4);
+        }
+
         function getRandomColor(str) {
             let hash = 0;
             for (let i = 0; i < str.length; i++) {
@@ -194,6 +221,12 @@
             }
             const colors = ['#e53935', '#d81b60', '#8e24aa', '#5e35b1', '#3949ab', '#1e88e5', '#00897b', '#43a047', '#fb8c00'];
             return colors[Math.abs(hash) % colors.length];
+        }
+
+        function formatTime(dateString) {
+            if (!dateString) return "";
+            const date = new Date(dateString);
+            return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
         }
 
         async function loadMessages() {
@@ -211,7 +244,7 @@
                     const div = document.createElement('div');
                     div.className = 'message';
 
-                    const authorName = msg.author || 'Учасник';
+                    const authorName = msg.author || 'Михайло';
 
                     const avatar = document.createElement('div');
                     avatar.className = 'avatar';
@@ -221,9 +254,19 @@
                     const content = document.createElement('div');
                     content.className = 'msg-content';
 
+                    const headerRow = document.createElement('div');
+                    headerRow.className = 'msg-header-row';
+
                     const author = document.createElement('div');
                     author.className = 'username';
                     author.innerText = authorName;
+
+                    const timeSpan = document.createElement('div');
+                    timeSpan.className = 'msg-time';
+                    timeSpan.innerText = formatTime(msg.created_at);
+
+                    headerRow.appendChild(author);
+                    headerRow.appendChild(timeSpan);
 
                     const text = document.createElement('div');
                     text.className = 'message-text';
@@ -232,11 +275,23 @@
                     const footer = document.createElement('div');
                     footer.className = 'message-footer';
 
+                    const reactions = document.createElement('div');
+                    reactions.className = 'reactions';
+
                     const likesCount = msg.likes || 0;
                     const likeBtn = document.createElement('button');
                     likeBtn.className = 'action-btn';
-                    likeBtn.innerHTML = `❤️ <span>${likesCount}</span>`;
-                    likeBtn.onclick = () => addLike(msg.id, likesCount);
+                    likeBtn.innerHTML = `👍 <span>${likesCount}</span>`;
+                    likeBtn.onclick = () => updateReaction(msg.id, 'likes', likesCount + 1);
+
+                    const dislikesCount = msg.dislikes || 0;
+                    const dislikeBtn = document.createElement('button');
+                    dislikeBtn.className = 'action-btn';
+                    dislikeBtn.innerHTML = `👎 <span>${dislikesCount}</span>`;
+                    dislikeBtn.onclick = () => updateReaction(msg.id, 'dislikes', dislikesCount + 1);
+
+                    reactions.appendChild(likeBtn);
+                    reactions.appendChild(dislikeBtn);
 
                     const targetWallet = "UQDXq1iAqu88tVRG62_k03kAXELu_1gzRBMye-VZoFRIRtWw";
                     const helpBtn = document.createElement('button');
@@ -244,10 +299,10 @@
                     helpBtn.innerHTML = `💸 0.01 TON`;
                     helpBtn.onclick = () => handleDonate(targetWallet, "10000000");
 
-                    footer.appendChild(likeBtn);
+                    footer.appendChild(reactions);
                     footer.appendChild(helpBtn);
 
-                    content.appendChild(author);
+                    content.appendChild(headerRow);
                     content.appendChild(text);
                     content.appendChild(footer);
 
@@ -261,29 +316,37 @@
 
         async function sendMessage() {
             const input = document.getElementById('message-input');
+            const btn = document.getElementById('send-btn');
             const text = input.value.trim();
             if (!text) return;
 
-            // Надсилаємо в базу текст і нуль лайків (те, що точно є у вашій таблиці)
+            btn.disabled = true;
+
+            let authorName = myTelegramName;
+            if (connectedAddress) {
+                authorName = `${myTelegramName} (${formatAddress(connectedAddress)})`;
+            }
+
             const { error } = await supabaseClient
                 .from('messages')
                 .insert([{
                     text: text,
-                    likes: 0
+                    likes: 0,
+                    dislikes: 0,
+                    author: authorName
                 }]);
 
-            if (!error) {
-                input.value = '';
-                loadMessages();
-            } else {
-                console.error("Помилка:", error);
-            }
+            input.value = '';
+            btn.disabled = false;
+            await loadMessages();
         }
 
-        async function addLike(id, currentLikes) {
+        async function updateReaction(id, field, newValue) {
+            const updateObj = {};
+            updateObj[field] = newValue;
             const { error } = await supabaseClient
                 .from('messages')
-                .update({ likes: currentLikes + 1 })
+                .update(updateObj)
                 .eq('id', id);
 
             if (!error) loadMessages();

@@ -1,1 +1,5 @@
-tonconnect-manifest.json
+{
+  "url": "https://gansgajder-web.github.io/Para/",
+  "name": "Para",
+  "iconUrl": "https://ton.org/download/ton_symbol.png"
+}

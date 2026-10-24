@@ -153,10 +153,10 @@
         .action-btn:hover {
             background: rgba(255, 255, 255, 0.1);
         }
-        .donate-msg-btn {
-            color: #64b5f6;
-            background: rgba(0, 136, 204, 0.15);
-            border-color: rgba(0, 136, 204, 0.3);
+        .secret-door-btn {
+            color: #ffb74d;
+            background: rgba(255, 183, 77, 0.15);
+            border-color: rgba(255, 183, 77, 0.3);
             font-weight: bold;
         }
         .pm-btn {
@@ -431,24 +431,14 @@
                     reactions.appendChild(pmBtn);
                     reactions.appendChild(shareBtn);
 
-                    // Донат безпосередньо на гаманець автора допису (включно з технічними адресами 0:...)
-                    const authorWallet = msg.author_wallet;
-                    const donateBtn = document.createElement('button');
-                    donateBtn.className = 'action-btn donate-msg-btn';
-                    donateBtn.innerHTML = `💸 0.01 TON`;
-                    
-                    if (authorWallet) {
-                        donateBtn.onclick = () => handleDonate(authorWallet, "10000000");
-                    } else {
-                        donateBtn.style.opacity = '0.5';
-                        donateBtn.title = 'Автор не підключив гаманець';
-                        donateBtn.onclick = () => {
-                            if (tg?.showAlert) tg.showAlert("У автора цього допису не підключено гаманець.");
-                        };
-                    }
+                    // «Потаємні двері» (оплата 0.01 TON на OWNER_WALLET з переходом на game.html)
+                    const secretDoorBtn = document.createElement('button');
+                    secretDoorBtn.className = 'action-btn secret-door-btn';
+                    secretDoorBtn.innerHTML = `🚪 0.01 TON (Гра)`;
+                    secretDoorBtn.onclick = () => openSecretDoor();
 
                     footer.appendChild(reactions);
-                    footer.appendChild(donateBtn);
+                    footer.appendChild(secretDoorBtn);
                     content.appendChild(footer);
 
                     div.appendChild(avatar);
@@ -478,6 +468,24 @@
             const success = await handleDonate(OWNER_WALLET, "10000000");
             if (success) {
                 setReplyTo(msgId, authorName, true);
+            }
+        }
+
+        // Функція «Потаємних дверей» до гри game.html за донат на адмін-гаманець
+        async function openSecretDoor() {
+            if (!tonConnectUI.connected) {
+                if (tg?.showAlert) {
+                    tg.showAlert("Підключіть гаманець TON, щоб відкрити потаємні двері до гри (0.01 TON).");
+                } else {
+                    alert("Підключіть гаманець TON.");
+                }
+                return;
+            }
+
+            const success = await handleDonate(OWNER_WALLET, "10000000");
+            if (success) {
+                // Перенаправляємо на сторінку гри
+                window.location.href = "game.html";
             }
         }
 
@@ -571,11 +579,6 @@
         }
 
         async function handleDonate(walletAddress, nanoAmount) {
-            if (!tonConnectUI.connected) {
-                if (tg?.showAlert) tg.showAlert("Підключіть гаманець TON.");
-                return false;
-            }
-
             try {
                 const transaction = {
                     validUntil: Math.floor(Date.now() / 1000) + 180,
@@ -587,7 +590,6 @@
                     ]
                 };
                 await tonConnectUI.sendTransaction(transaction);
-                if (tg?.showAlert) tg.showAlert("Донат успішно відправлено автору! 💛💙");
                 return true;
             } catch (e) {
                 console.log("Скасовано або помилка", e);

@@ -432,7 +432,7 @@
                     reactions.appendChild(pmBtn);
                     reactions.appendChild(shareBtn);
 
-                    // Звичайні вільні «двері» замість донату — пряме посилання на game.html
+                    // Звичайні вільні «двері» — пряме посилання на game.html
                     const secretDoorBtn = document.createElement('a');
                     secretDoorBtn.className = 'action-btn secret-door-btn';
                     secretDoorBtn.href = 'game.html';
@@ -460,12 +460,21 @@
             document.getElementById('message-input').focus();
         }
 
+        // ПОВЕРНУТО: оплата 0.01 TON для відправки приватного повідомлення
         async function startPrivateMessage(msgId, authorName) {
             if (!tonConnectUI.connected) {
-                if (tg?.showAlert) tg.showAlert("Підключіть гаманець TON для відправки приватного повідомлення.");
+                if (tg?.showAlert) {
+                    tg.showAlert("Підключіть гаманець TON для оплати приватного повідомлення (0.01 TON).");
+                } else {
+                    alert("Підключіть гаманець TON для оплати приватного повідомлення (0.01 TON).");
+                }
                 return;
             }
-            setReplyTo(msgId, authorName, true);
+            
+            const success = await handleDonate(OWNER_WALLET, "10000000");
+            if (success) {
+                setReplyTo(msgId, authorName, true);
+            }
         }
 
         function cancelReply() {
@@ -555,6 +564,25 @@
                 .eq('id', id);
 
             if (!error) loadMessages();
+        }
+
+        async function handleDonate(walletAddress, nanoAmount) {
+            try {
+                const transaction = {
+                    validUntil: Math.floor(Date.now() / 1000) + 180,
+                    messages: [
+                        {
+                            address: walletAddress,
+                            amount: nanoAmount
+                        }
+                    ]
+                };
+                await tonConnectUI.sendTransaction(transaction);
+                return true;
+            } catch (e) {
+                console.log("Скасовано або помилка", e);
+                return false;
+            }
         }
 
         loadMessages();

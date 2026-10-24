@@ -1,100 +1,338 @@
 <!DOCTYPE html>
 <html lang="uk">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Para App</title>
-  
-  <!-- Подключаем официальную библиотеку TON Connect UI -->
-  <script src="https://unpkg.com/@tonconnect/ui@latest/dist/tonconnect-ui.min.js"></script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PapaChat</title>
+    <!-- Telegram WebApp SDK -->
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <!-- Supabase JS -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <!-- TON Connect UI SDK (Підтримка всіх гаманців) -->
+    <script src="https://unpkg.com/@tonconnect/ui@latest/dist/tonconnect-ui.min.js"></script>
 
-  <style>
-    body {
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-      background-color: #1a1a1a;
-      color: #ffffff;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      min-height: 100vh;
-      margin: 0;
-      padding: 20px;
-      box-sizing: border-box;
-    }
-
-    .container {
-      background: #2a2a2a;
-      padding: 30px;
-      border-radius: 16px;
-      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
-      text-align: center;
-      max-width: 400px;
-      width: 100%;
-    }
-
-    h1 {
-      margin-top: 0;
-      color: #0088cc;
-    }
-
-    #wallet-info {
-      margin-top: 20px;
-      word-break: break-all;
-      background: #1a1a1a;
-      padding: 12px;
-      border-radius: 8px;
-      font-size: 14px;
-      display: none;
-    }
-
-    #ton-connect {
-      display: flex;
-      justify-content: center;
-      margin-top: 20px;
-    }
-  </style>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #121212;
+            color: #e0e0e0;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+        }
+        .header {
+            background-color: #1f1f1f;
+            color: #ffffff;
+            padding: 10px 15px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid #333;
+        }
+        .header h1 {
+            margin: 0;
+            font-size: 18px;
+        }
+        .header-actions {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        #ton-connect-btn {
+            transform: scale(0.85);
+            transform-origin: right center;
+        }
+        #chat-container {
+            flex: 1;
+            padding: 15px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+        .message {
+            background: #1e1e1e;
+            padding: 10px 12px;
+            border-radius: 10px;
+            max-width: 85%;
+            border: 1px solid #2a2a2a;
+            display: flex;
+            gap: 10px;
+        }
+        .avatar {
+            width: 38px;
+            height: 38px;
+            border-radius: 50%;
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 15px;
+            flex-shrink: 0;
+            text-transform: uppercase;
+        }
+        .msg-content {
+            flex: 1;
+        }
+        .username {
+            font-size: 12px;
+            font-weight: bold;
+            color: #64b5f6;
+            margin-bottom: 4px;
+        }
+        .message-text {
+            word-break: break-word;
+            font-size: 14px;
+            margin-bottom: 6px;
+        }
+        .message-footer {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 12px;
+            margin-top: 4px;
+        }
+        .action-btn {
+            background: none;
+            border: none;
+            color: #ff5252;
+            cursor: pointer;
+            font-size: 12px;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            padding: 2px 6px;
+            border-radius: 4px;
+        }
+        .donate-msg-btn {
+            color: #0088cc;
+            background: rgba(0, 136, 204, 0.15);
+            font-weight: bold;
+        }
+        .input-container {
+            padding: 12px;
+            background: #1f1f1f;
+            display: flex;
+            gap: 10px;
+            border-top: 1px solid #333;
+        }
+        .input-container input {
+            flex: 1;
+            padding: 12px;
+            background: #2c2c2c;
+            border: 1px solid #444;
+            color: #fff;
+            border-radius: 8px;
+            font-size: 15px;
+        }
+        .input-container button {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 16px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+    </style>
 </head>
 <body>
 
-  <div class="container">
-    <h1>Проєкт Para</h1>
-    <p>Підключіть ваш TON-кошелек для продолжения</p>
-
-    <!-- Контейнер для кнопки TON Connect -->
-    <div id="ton-connect"></div>
-
-    <!-- Блок для отображения адреса кошелька -->
-    <div id="wallet-info">
-      <strong>Кошелек подключен:</strong>
-      <div id="wallet-address" style="margin-top: 5px; color: #4caf50;"></div>
+    <div class="header">
+        <h1>PapaChat</h1>
+        <div class="header-actions">
+            <!-- Офіційна кнопка TON Connect з вибором будь-якого гаманця -->
+            <div id="ton-connect-btn"></div>
+        </div>
     </div>
-  </div>
 
-  <script>
-    // Инициализация TON Connect UI с вашим манифестом
-    const tonConnectUI = new TON_CONNECT_UI.TonConnectUI({
-      manifestUrl: 'https://gansgajder-web.github.io/Para/tonconnect-manifest.json',
-      buttonRootId: 'ton-connect'
-    });
+    <div id="chat-container">
+        <!-- Повідомлення -->
+    </div>
 
-    // Отслеживание состояния подключения кошелька
-    tonConnectUI.onStatusChange(wallet => {
-      const walletInfo = document.getElementById('wallet-info');
-      const walletAddress = document.getElementById('wallet-address');
+    <div class="input-container">
+        <input type="text" id="message-input" placeholder="Введіть повідомлення... 💬">
+        <button onclick="sendMessage()">Надіслати</button>
+    </div>
 
-      if (wallet) {
-        // Кошелек подключен
-        const address = wallet.account.address;
-        walletAddress.innerText = address;
-        walletInfo.style.display = 'block';
-      } else {
-        // Кошелек отключен
-        walletInfo.style.display = 'none';
-        walletAddress.innerText = '';
-      }
-    });
-  </script>
+    <script>
+        const tg = window.Telegram?.WebApp;
+        if (tg) {
+            tg.expand();
+            tg.ready();
+        }
 
+        const SUPABASE_URL = 'https://hsboeykzidkilprcpyey.supabase.co';
+        const SUPABASE_KEY = 'sb_publishable_itYl4wIpMrcdLLHyeaEoXw_7ajw1483';
+        const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+        // Ініціалізація TON Connect з налаштуваннями
+        const tonConnectUI = new TON_CONNECT_UI.TonConnectUI({
+            manifestUrl: 'https://gansgajder-web.github.io/manifest.json',
+            buttonRootId: 'ton-connect-btn'
+        });
+
+        let currentWalletAddress = null;
+
+        // Слідкуємо за статусом підключення гаманця
+        tonConnectUI.onStatusChange(wallet => {
+            if (wallet) {
+                currentWalletAddress = wallet.account.address;
+            } else {
+                currentWalletAddress = null;
+            }
+            loadMessages();
+        });
+
+        function formatAddress(addr) {
+            if (!addr) return "Гість";
+            return addr.substring(0, 4) + '...' + addr.substring(addr.length - 4);
+        }
+
+        function getRandomColor(str) {
+            let hash = 0;
+            for (let i = 0; i < str.length; i++) {
+                hash = str.charCodeAt(i) + ((hash << 5) - hash);
+            }
+            const colors = ['#e53935', '#d81b60', '#8e24aa', '#5e35b1', '#3949ab', '#1e88e5', '#00897b', '#43a047', '#fb8c00'];
+            return colors[Math.abs(hash) % colors.length];
+        }
+
+        async function loadMessages() {
+            const container = document.getElementById('chat-container');
+            const { data, error } = await supabaseClient
+                .from('messages')
+                .select('*')
+                .order('id', { ascending: true });
+
+            if (error) return;
+
+            container.innerHTML = '';
+            if (data) {
+                data.forEach(msg => {
+                    const div = document.createElement('div');
+                    div.className = 'message';
+
+                    const authorWallet = msg.wallet || msg.author;
+                    const displayName = authorWallet && authorWallet.length > 10 ? formatAddress(authorWallet) : (msg.author || 'Учасник');
+
+                    const avatar = document.createElement('div');
+                    avatar.className = 'avatar';
+                    avatar.style.backgroundColor = getRandomColor(displayName);
+                    avatar.innerText = displayName[0].toUpperCase();
+
+                    const content = document.createElement('div');
+                    content.className = 'msg-content';
+
+                    const author = document.createElement('div');
+                    author.className = 'username';
+                    author.innerText = displayName;
+
+                    const text = document.createElement('div');
+                    text.className = 'message-text';
+                    text.innerText = msg.text || '';
+
+                    const footer = document.createElement('div');
+                    footer.className = 'message-footer';
+
+                    const likesCount = msg.likes || 0;
+                    const likeBtn = document.createElement('button');
+                    likeBtn.className = 'action-btn';
+                    likeBtn.innerHTML = `❤️ <span>${likesCount}</span>`;
+                    likeBtn.onclick = () => addLike(msg.id, likesCount);
+
+                    const targetWallet = msg.wallet || "UQDXq1iAqu88tVRG62_k03kAXELu_1gzRBMye-VZoFRIRtWw";
+                    const helpBtn = document.createElement('button');
+                    helpBtn.className = 'action-btn donate-msg-btn';
+                    helpBtn.innerHTML = `💸 Підтримати`;
+                    helpBtn.onclick = () => handleDonate(targetWallet);
+
+                    footer.appendChild(likeBtn);
+                    footer.appendChild(helpBtn);
+
+                    content.appendChild(author);
+                    content.appendChild(text);
+                    content.appendChild(footer);
+
+                    div.appendChild(avatar);
+                    div.appendChild(content);
+                    container.appendChild(div);
+                });
+                container.scrollTop = container.scrollHeight;
+            }
+        }
+
+        async function sendMessage() {
+            const input = document.getElementById('message-input');
+            const text = input.value.trim();
+            if (!text) return;
+
+            // Перевіряємо, чи підключив користувач гаманець
+            if (!currentWalletAddress) {
+                if (tg?.showAlert) {
+                    tg.showAlert("Для відправки повідомлення підключіть ваш TON-гаманець у верхньому правому кутку!");
+                } else {
+                    alert("Підключіть ваш TON-гаманець у верхньому правому кутку!");
+                }
+                return;
+            }
+
+            const { error } = await supabaseClient
+                .from('messages')
+                .insert([{
+                    text: text,
+                    likes: 0,
+                    author: formatAddress(currentWalletAddress),
+                    wallet: currentWalletAddress
+                }]);
+
+            if (!error) {
+                input.value = '';
+                loadMessages();
+            }
+        }
+
+        async function addLike(id, currentLikes) {
+            const { error } = await supabaseClient
+                .from('messages')
+                .update({ likes: currentLikes + 1 })
+                .eq('id', id);
+
+            if (!error) loadMessages();
+        }
+
+        async function handleDonate(walletAddress) {
+            // Якщо гаманець підключений через TON Connect — відправляємо транзакцію в один клік
+            if (tonConnectUI.connected) {
+                try {
+                    const transaction = {
+                        validUntil: Math.floor(Date.now() / 1000) + 60,
+                        messages: [
+                            {
+                                address: walletAddress,
+                                amount: "100000000" // 0.1 TON (можна змінити)
+                            }
+                        ]
+                    };
+                    await tonConnectUI.sendTransaction(transaction);
+                } catch (e) {
+                    console.log("Транзакцію скасовано або виникла помилка", e);
+                }
+            } else {
+                // Якщо не підключено — копіюємо та відкриваємо Telegram Wallet
+                if (navigator.clipboard) {
+                    navigator.clipboard.writeText(walletAddress);
+                }
+                if (tg?.showAlert) {
+                    tg.showAlert(`Адресу TON скопійовано!\n\n${walletAddress}`);
+                }
+            }
+        }
+
+        loadMessages();
+    </script>
 </body>
 </html>

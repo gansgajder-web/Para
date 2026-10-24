@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Хрестики-Нулики — Секретна кімната</title>
+    <title>Ігрова зала — Секретна кімната</title>
     <!-- Telegram WebApp SDK -->
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <!-- TON Connect UI SDK -->
@@ -37,13 +37,41 @@
         }
 
         .header h2 {
-            font-size: 16px;
+            font-size: 15px;
             color: #ffc107;
         }
 
         #ton-connect-btn {
             transform: scale(0.85);
             transform-origin: right center;
+        }
+
+        /* Перемикач ігор */
+        .game-switcher {
+            display: flex;
+            gap: 8px;
+            margin: 15px 0;
+            width: 100%;
+            max-width: 340px;
+        }
+
+        .switch-btn {
+            flex: 1;
+            background: #1e1e1e;
+            color: #aaa;
+            border: 1px solid #333;
+            padding: 8px;
+            border-radius: 8px;
+            font-size: 13px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: 0.2s;
+        }
+
+        .switch-btn.active {
+            background: #ffc107;
+            color: #121212;
+            border-color: #ffc107;
         }
 
         .game-container {
@@ -55,31 +83,8 @@
             width: 100%;
         }
 
-        .mode-selector {
-            display: flex;
-            gap: 10px;
-            margin-bottom: 15px;
-        }
-
-        .mode-btn {
-            background: #1e1e1e;
-            color: #aaa;
-            border: 1px solid #333;
-            padding: 6px 12px;
-            border-radius: 6px;
-            font-size: 12px;
-            cursor: pointer;
-            font-weight: bold;
-        }
-
-        .mode-btn.active {
-            background: #ffc107;
-            color: #121212;
-            border-color: #ffc107;
-        }
-
         .status-msg {
-            font-size: 16px;
+            font-size: 15px;
             font-weight: 500;
             color: #64b5f6;
             margin-bottom: 15px;
@@ -87,51 +92,67 @@
             text-align: center;
         }
 
-        .board {
+        /* Стилі для Хрестиків-нуликів */
+        .tictactoe-board {
             display: grid;
-            grid-template-columns: repeat(3, 90px);
-            grid-template-rows: repeat(3, 90px);
+            grid-template-columns: repeat(3, 85px);
+            grid-template-rows: repeat(3, 85px);
             gap: 8px;
             background-color: #222;
             padding: 8px;
             border-radius: 12px;
             border: 1px solid #333;
-            box-shadow: 0 8px 20px rgba(0,0,0,0.5);
         }
 
-        .cell {
+        .ttt-cell {
             background-color: #1c1c1e;
             border: none;
             border-radius: 8px;
-            font-size: 42px;
+            font-size: 38px;
             font-weight: bold;
             color: #fff;
             cursor: pointer;
             display: flex;
             align-items: center;
             justify-content: center;
-            transition: background-color 0.2s, transform 0.1s;
         }
 
-        .cell:active {
-            transform: scale(0.92);
+        .ttt-cell.x { color: #ff5252; }
+        .ttt-cell.o { color: #64b5f6; }
+
+        /* Стилі для Морського бою */
+        .battleship-board {
+            display: grid;
+            grid-template-columns: repeat(5, 50px);
+            grid-template-rows: repeat(5, 50px);
+            gap: 5px;
+            background-color: #222;
+            padding: 6px;
+            border-radius: 10px;
+            border: 1px solid #333;
         }
 
-        .cell.x {
-            color: #ff5252;
+        .bs-cell {
+            background-color: #1c1c1e;
+            border: 1px solid #333;
+            border-radius: 6px;
+            font-size: 20px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
         }
 
-        .cell.o {
-            color: #64b5f6;
-        }
+        .bs-cell.hit { background-color: rgba(255, 82, 82, 0.2); }
+        .bs-cell.miss { background-color: rgba(100, 181, 246, 0.2); }
 
-        .restart-btn {
+        .action-btn {
             margin-top: 20px;
             background-color: #2c2c2e;
             color: #ffc107;
             border: 1px solid #444;
             padding: 10px 20px;
-            font-size: 14px;
+            font-size: 13px;
             font-weight: bold;
             border-radius: 8px;
             cursor: pointer;
@@ -140,7 +161,7 @@
         .footer {
             width: 100%;
             max-width: 400px;
-            margin-bottom: 10px;
+            margin-top: 15px;
         }
 
         .back-btn {
@@ -160,170 +181,176 @@
 <body>
 
     <div class="header">
-        <h2>❌ Хрестики-Нулики</h2>
+        <h2>🕹️ Ігрова Зала</h2>
         <div id="ton-connect-btn"></div>
     </div>
 
+    <!-- Перемикач ігор -->
+    <div class="game-switcher">
+        <button class="switch-btn active" id="tab-ttt" onclick="switchGame('ttt')">❌ Хрестики-нулики</button>
+        <button class="switch-btn" id="tab-bs" onclick="switchGame('bs')">🚢 Морський бій</button>
+    </div>
+
     <div class="game-container">
-        <div class="mode-selector">
-            <button class="mode-btn active" id="btn-bot" onclick="setMode('bot')">🤖 Проти Бота</button>
-            <button class="mode-btn" id="btn-friend" onclick="setMode('friend')">👥 З другом</button>
+        <!-- Секція Хрестиків-нуликів -->
+        <div id="game-ttt" style="display: flex; flex-direction: column; align-items: center;">
+            <div class="status-msg" id="ttt-status">Ваш хід (X) проти Бота</div>
+            <div class="tictactoe-board" id="ttt-board">
+                <button class="ttt-cell" onclick="makeTTTMove(0)"></button>
+                <button class="ttt-cell" onclick="makeTTTMove(1)"></button>
+                <button class="ttt-cell" onclick="makeTTTMove(2)"></button>
+                <button class="ttt-cell" onclick="makeTTTMove(3)"></button>
+                <button class="ttt-cell" onclick="makeTTTMove(4)"></button>
+                <button class="ttt-cell" onclick="makeTTTMove(5)"></button>
+                <button class="ttt-cell" onclick="makeTTTMove(6)"></button>
+                <button class="ttt-cell" onclick="makeTTTMove(7)"></button>
+                <button class="ttt-cell" onclick="makeTTTMove(8)"></button>
+            </div>
+            <button class="action-btn" onclick="resetTTT()">🔄 Нова гра</button>
         </div>
 
-        <div class="status-msg" id="status">Ваш хід (X)</div>
-
-        <div class="board" id="board">
-            <button class="cell" onclick="makeMove(0)"></button>
-            <button class="cell" onclick="makeMove(1)"></button>
-            <button class="cell" onclick="makeMove(2)"></button>
-            <button class="cell" onclick="makeMove(3)"></button>
-            <button class="cell" onclick="makeMove(4)"></button>
-            <button class="cell" onclick="makeMove(5)"></button>
-            <button class="cell" onclick="makeMove(6)"></button>
-            <button class="cell" onclick="makeMove(7)"></button>
-            <button class="cell" onclick="makeMove(8)"></button>
+        <!-- Секція Морського бою (5х5 проти бота) -->
+        <div id="game-bs" style="display: none; flex-direction: column; align-items: center;">
+            <div class="status-msg" id="bs-status">Знайдіть і потопіть 3 кораблі бота!</div>
+            <div class="battleship-board" id="bs-board"></div>
+            <button class="action-btn" onclick="resetBS()">🔄 Новий бій</button>
         </div>
-
-        <button class="restart-btn" onclick="resetGame()">🔄 Нова гра</button>
     </div>
 
     <div class="footer">
-        <a href="index.html" class="back-btn">← Повернутися до Живого журналу</a>
+        <a href="index.html" class="back-btn">← Повернутися до ЖЖ</a>
     </div>
 
     <script>
         const tg = window.Telegram?.WebApp;
-        if (tg) {
-            tg.expand();
-            tg.ready();
-        }
+        if (tg) { tg.expand(); tg.ready(); }
 
         const tonConnectUI = new TON_CONNECT_UI.TonConnectUI({
             manifestUrl: 'https://gansgajder-web.github.io/Para/tonconnect-manifest.json',
             buttonRootId: 'ton-connect-btn'
         });
 
-        let board = ["", "", "", "", "", "", "", "", ""];
-        let currentPlayer = "X";
-        let isGameActive = true;
-        let gameMode = "bot"; // "bot" або "friend"
-
-        const winningConditions = [
-            [0, 1, 2], [3, 4, 5], [6, 7, 8],
-            [0, 3, 6], [1, 4, 7], [2, 5, 8],
-            [0, 4, 8], [2, 4, 6]
-        ];
-
-        const statusDisplay = document.getElementById('status');
-        const cells = document.querySelectorAll('.cell');
-
-        function setMode(mode) {
-            gameMode = mode;
-            document.getElementById('btn-bot').classList.toggle('active', mode === 'bot');
-            document.getElementById('btn-friend').classList.toggle('active', mode === 'friend');
-            resetGame();
+        function switchGame(game) {
+            document.getElementById('game-ttt').style.display = game === 'ttt' ? 'flex' : 'none';
+            document.getElementById('game-bs').style.display = game === 'bs' ? 'flex' : 'none';
+            document.getElementById('tab-ttt').classList.toggle('active', game === 'ttt');
+            document.getElementById('tab-bs').classList.toggle('active', game === 'bs');
+            if(game === 'bs' && bsCells.length === 0) initBS();
         }
 
-        function makeMove(index) {
-            if (board[index] !== "" || !isGameActive) return;
+        /* --- ЛОГІКА ХРЕСТИКІВ-НУЛИКІВ --- */
+        let tttBoard = ["", "", "", "", "", "", "", "", ""];
+        let tttActive = true;
+        const wins = [[0,1,2],[3,4,5],[6,7,8],[0,3,6],[1,4,7],[2,5,8],[0,4,8],[2,4,6]];
+        const tttCells = document.querySelectorAll('.ttt-cell');
 
-            board[index] = currentPlayer;
-            cells[index].innerText = currentPlayer;
-            cells[index].classList.add(currentPlayer.toLowerCase());
+        function makeTTTMove(i) {
+            if (tttBoard[i] !== "" || !tttActive) return;
+            tttBoard[i] = "X";
+            tttCells[i].innerText = "X";
+            tttCells[i].classList.add("x");
 
-            if (checkResult()) return;
+            if (checkTTTWin()) return;
 
-            if (gameMode === "bot" && currentPlayer === "X") {
-                currentPlayer = "O";
-                statusDisplay.innerText = "Бот думає... 🤔";
-                isGameActive = false;
-                setTimeout(botMove, 500);
-            } else {
-                currentPlayer = currentPlayer === "X" ? "O" : "X";
-                statusDisplay.innerText = `Хід: ${currentPlayer}`;
+            tttActive = false;
+            document.getElementById('ttt-status').innerText = "Бот думає... 🤔";
+            setTimeout(botTTTMove, 400);
+        }
+
+        function botTTTMove() {
+            let empty = tttBoard.map((v, idx) => v === "" ? idx : null).filter(v => v !== null);
+            if (empty.length === 0) return;
+            let move = empty[Math.floor(Math.random() * empty.length)];
+
+            tttBoard[move] = "O";
+            tttCells[move].innerText = "O";
+            tttCells[move].classList.add("o");
+
+            if (!checkTTTWin()) {
+                tttActive = true;
+                document.getElementById('ttt-status').innerText = "Ваш хід (X)";
             }
         }
 
-        function botMove() {
-            // Проста та розумна логіка робота
-            let emptyIndices = board.map((val, idx) => val === "" ? idx : null).filter(val => val !== null);
-            
-            if (emptyIndices.length === 0) return;
-
-            // 1. Перевірити, чи може Бот виграти цим ходом
-            let move = findWinningMove("O");
-            // 2. Якщо ні, перевірити, чи треба заблокувати виграш гравця
-            if (move === null) move = findWinningMove("X");
-            // 3. Інакше зробити вибір центру або випадковий хід
-            if (move === null && board[4] === "") move = 4;
-            if (move === null) move = emptyIndices[Math.floor(Math.random() * emptyIndices.length)];
-
-            board[move] = "O";
-            cells[move].innerText = "O";
-            cells[move].classList.add("o");
-
-            isGameActive = true;
-            if (!checkResult()) {
-                currentPlayer = "X";
-                statusDisplay.innerText = "Ваш хід (X)";
-            }
-        }
-
-        function findWinningMove(player) {
-            for (let condition of winningConditions) {
-                const [a, b, c] = condition;
-                const values = [board[a], board[b], board[c]];
-                if (values.filter(v => v === player).length === 2 && values.includes("")) {
-                    if (board[a] === "") return a;
-                    if (board[b] === "") return b;
-                    if (board[c] === "") return c;
+        function checkTTTWin() {
+            for (let c of wins) {
+                if (tttBoard[c[0]] && tttBoard[c[0]] === tttBoard[c[1]] && tttBoard[c[0]] === tttBoard[c[2]]) {
+                    document.getElementById('ttt-status').innerText = tttBoard[c[0]] === "X" ? "Ви перемогли! 🎉" : "Переміг Бот! 🤖";
+                    tttActive = false;
+                    return true;
                 }
             }
-            return null;
-        }
-
-        function checkResult() {
-            let roundWon = false;
-
-            for (let i = 0; i < winningConditions.length; i++) {
-                const [a, b, c] = winningConditions[i];
-                if (board[a] === "" || board[b] === "" || board[c] === "") continue;
-                if (board[a] === board[b] && board[b] === board[c]) {
-                    roundWon = true;
-                    break;
-                }
-            }
-
-            if (roundWon) {
-                if (gameMode === "bot") {
-                    statusDisplay.innerText = currentPlayer === "X" ? "Ви перемогли Бота! 🎉" : "Переміг Бот! 🤖";
-                } else {
-                    statusDisplay.innerText = `Перемогли ${currentPlayer === "X" ? "Хрестики (X)" : "Нулики (O)"}! 🎉`;
-                }
-                isGameActive = false;
+            if (!tttBoard.includes("")) {
+                document.getElementById('ttt-status').innerText = "Нічия! 🤝";
+                tttActive = false;
                 return true;
             }
-
-            if (!board.includes("")) {
-                statusDisplay.innerText = "Нічия! 🤝";
-                isGameActive = false;
-                return true;
-            }
-
             return false;
         }
 
-        function resetGame() {
-            board = ["", "", "", "", "", "", "", "", ""];
-            isGameActive = true;
-            currentPlayer = "X";
-            statusDisplay.innerText = gameMode === "bot" ? "Ваш хід (X)" : "Хід: X";
-            
-            cells.forEach(cell => {
-                cell.innerText = "";
-                cell.classList.remove('x', 'o');
-            });
+        function resetTTT() {
+            tttBoard = ["", "", "", "", "", "", "", "", ""];
+            tttActive = true;
+            document.getElementById('ttt-status').innerText = "Ваш хід (X) проти Бота";
+            tttCells.forEach(c => { c.innerText = ""; c.classList.remove('x', 'o'); });
         }
+
+        /* --- ЛОГІКА МОРСЬКОГО БОЮ (5x5) --- */
+        let bsBoardEl = document.getElementById('bs-board');
+        let bsCells = [];
+        let bsShips = [];
+        let bsHits = 0;
+        let bsActive = true;
+
+        function initBS() {
+            bsBoardEl.innerHTML = "";
+            bsCells = [];
+            bsShips = [];
+            bsHits = 0;
+            bsActive = true;
+            document.getElementById('bs-status').innerText = "Знайдіть і потопіть 3 кораблі бота!";
+
+            // Ховаємо 3 кораблі на полі 5x5 (25 клітинок)
+            while(bsShips.length < 3) {
+                let pos = Math.floor(Math.random() * 25);
+                if(!bsShips.includes(pos)) bsShips.push(pos);
+            }
+
+            for(let i=0; i<25; i++) {
+                let cell = document.createElement('button');
+                cell.className = 'bs-cell';
+                cell.onclick = () => fireBS(i, cell);
+                bsBoardEl.appendChild(cell);
+                bsCells.push(cell);
+            }
+        }
+
+        function fireBS(i, cell) {
+            if (!bsActive || cell.classList.contains('hit') || cell.classList.contains('miss')) return;
+
+            if (bsShips.includes(i)) {
+                cell.innerText = "💥";
+                cell.classList.add('hit');
+                bsHits++;
+                if (bsHits === 3) {
+                    document.getElementById('bs-status').innerText = "Перемога! Всі кораблі потоплені! 🏆";
+                    bsActive = false;
+                } else {
+                    document.getElementById('bs-status').innerText = `Є влучання! Залишилось: ${3 - bsHits} 🎯`;
+                }
+            } else {
+                cell.innerText = "💧";
+                cell.classList.add('miss');
+                document.getElementById('bs-status').innerText = "Мимо! Спробуйте іншу клітинку ❌";
+            }
+        }
+
+        function resetBS() {
+            initBS();
+        }
+
+        // Ініціалізація морського бою при завантаженні (фоном)
+        initBS();
     </script>
 </body>
 </html>

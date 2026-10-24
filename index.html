@@ -167,7 +167,6 @@
             tg.ready();
         }
 
-        // Автоматичне отримання профілю з Telegram
         const tgUser = tg?.initDataUnsafe?.user;
         const telegramName = tgUser ? (tgUser.first_name + (tgUser.last_name ? ' ' + tgUser.last_name : '')) : 'Михайло';
 
@@ -175,12 +174,12 @@
         const SUPABASE_KEY = 'sb_publishable_itYl4wIpMrcdLLHyeaEoXw_7ajw1483';
         const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-        // Покращена ініціалізація TON Connect без помилок 404
+        // Оновлений редирект на правильний новий лінк @walt[span_3](start_span)[span_3](end_span)
         const tonConnectUI = new TON_CONNECT_UI.TonConnectUI({
             manifestUrl: 'https://gansgajder-web.github.io/Para/tonconnect-manifest.json',
             buttonRootId: 'ton-connect-btn',
             actionsConfiguration: {
-                twaReturnUrl: 'https://t.me/wallet'
+                twaReturnUrl: 'https://t.me/walt'
             }
         });
 

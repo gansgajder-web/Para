@@ -146,7 +146,7 @@
     <div class="header">
         <h1>PapaChat</h1>
         <div class="header-actions">
-            <!-- Кнопка авторизації TON Connect -->
+            <!-- Кнопка TON Connect -->
             <div id="ton-connect-btn"></div>
         </div>
     </div>
@@ -167,18 +167,21 @@
             tg.ready();
         }
 
-        // Отримання імені з Telegram SDK
+        // Автоматичне отримання профілю з Telegram
         const tgUser = tg?.initDataUnsafe?.user;
-        let myTelegramName = tgUser ? (tgUser.first_name + (tgUser.last_name ? ' ' + tgUser.last_name : '')) : '';
+        const telegramName = tgUser ? (tgUser.first_name + (tgUser.last_name ? ' ' + tgUser.last_name : '')) : 'Михайло';
 
         const SUPABASE_URL = 'https://hsboeykzidkilprcpyey.supabase.co';
         const SUPABASE_KEY = 'sb_publishable_itYl4wIpMrcdLLHyeaEoXw_7ajw1483';
         const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-        // Маніфест TON Connect
+        // Покращена ініціалізація TON Connect без помилок 404
         const tonConnectUI = new TON_CONNECT_UI.TonConnectUI({
             manifestUrl: 'https://gansgajder-web.github.io/Para/tonconnect-manifest.json',
-            buttonRootId: 'ton-connect-btn'
+            buttonRootId: 'ton-connect-btn',
+            actionsConfiguration: {
+                twaReturnUrl: 'https://t.me/wallet'
+            }
         });
 
         let connectedAddress = null;
@@ -274,15 +277,9 @@
             const text = input.value.trim();
             if (!text) return;
 
-            // Формуємо ім'я: спочатку шукаємо Telegram-ім'я, якщо немає — скорочену адресу TON
-            let finalName = myTelegramName;
-            
-            if (!finalName && connectedAddress) {
-                finalName = formatAddress(connectedAddress);
-            } else if (finalName && connectedAddress) {
-                finalName = `${finalName} (${formatAddress(connectedAddress)})`;
-            } else if (!finalName) {
-                finalName = "Михайло";
+            let authorName = telegramName;
+            if (connectedAddress) {
+                authorName = `${telegramName} (${formatAddress(connectedAddress)})`;
             }
 
             const { error } = await supabaseClient
@@ -290,7 +287,7 @@
                 .insert([{
                     text: text,
                     likes: 0,
-                    author: finalName
+                    author: authorName
                 }]);
 
             input.value = '';
@@ -327,7 +324,7 @@
                     navigator.clipboard.writeText(walletAddress);
                 }
                 if (tg?.showAlert) {
-                    tg.showAlert(`Спочатку підключіть TON-гаманець у верхньому кутку, або скористайтеся скопійованою адресою:\n\n${walletAddress}`);
+                    tg.showAlert(`Адресу скопійовано у буфер обміну:\n\n${walletAddress}`);
                 }
             }
         }

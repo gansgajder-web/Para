@@ -172,9 +172,9 @@
             tg.ready();
         }
 
-        // Автоматично беремо ім'я користувача з Telegram профілю
+        // Автоматично визначаємо ім'я користувача
         const tgUser = tg?.initDataUnsafe?.user;
-        const myName = tgUser ? (tgUser.first_name + (tgUser.last_name ? ' ' + tgUser.last_name : '')) : 'Михайло';
+        const myName = tgUser ? (tgUser.first_name + (tgUser.last_name ? ' ' + tgUser.last_name : '')) : 'Учасник';
 
         const SUPABASE_URL = 'https://hsboeykzidkilprcpyey.supabase.co';
         const SUPABASE_KEY = 'sb_publishable_itYl4wIpMrcdLLHyeaEoXw_7ajw1483';
@@ -282,12 +282,24 @@
         }
 
         function sendSupport(walletAddress) {
-            const tonUrl = `https://tonkeeper.app/transfer/${walletAddress}`;
-            if (tg?.openLink) {
-                tg.openLink(tonUrl);
-            } else {
-                window.open(tonUrl, '_blank');
+            // 1. Копіюємо адресу TON у буфер
+            if (navigator.clipboard) {
+                navigator.clipboard.writeText(walletAddress);
             }
+
+            // 2. Показуємо сповіщення
+            if (tg?.showAlert) {
+                tg.showAlert(`Адресу TON скопійовано!\n\n${walletAddress}\n\nЗараз відкриється Telegram Wallet для переказу.`);
+            }
+
+            // 3. Відкриваємо безпосередньо Telegram Wallet (@wallet)
+            setTimeout(() => {
+                if (tg?.openTelegramLink) {
+                    tg.openTelegramLink('https://t.me/wallet');
+                } else {
+                    window.open('https://t.me/wallet', '_blank');
+                }
+            }, 500);
         }
 
         loadMessages();

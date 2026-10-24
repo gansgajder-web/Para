@@ -4,6 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>PapaChat</title>
+    <!-- Telegram WebApp SDK -->
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <!-- Supabase JS -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
         body {
@@ -19,7 +22,7 @@
         .header {
             background-color: #1f1f1f;
             color: #ffffff;
-            padding: 15px;
+            padding: 12px 15px;
             display: flex;
             justify-content: space-between;
             align-items: center;
@@ -27,7 +30,7 @@
         }
         .header h1 {
             margin: 0;
-            font-size: 20px;
+            font-size: 18px;
         }
         .header-buttons {
             display: flex;
@@ -38,13 +41,10 @@
             color: #ffffff;
             border: 1px solid #555;
             padding: 6px 10px;
-            border-radius: 4px;
+            border-radius: 6px;
             cursor: pointer;
             font-size: 12px;
             font-weight: bold;
-        }
-        .header button:hover {
-            background-color: #444;
         }
         #chat-container {
             flex: 1;
@@ -56,33 +56,64 @@
         }
         .message {
             background: #1e1e1e;
-            padding: 12px;
-            border-radius: 8px;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.5);
+            padding: 10px 12px;
+            border-radius: 10px;
             max-width: 85%;
             border: 1px solid #2a2a2a;
+            display: flex;
+            gap: 10px;
+        }
+        .avatar {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            background-color: #007bff;
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 14px;
+            flex-shrink: 0;
+            background-size: cover;
+            background-position: center;
+        }
+        .msg-content {
+            flex: 1;
+        }
+        .username {
+            font-size: 12px;
+            font-weight: bold;
+            color: #64b5f6;
+            margin-bottom: 4px;
         }
         .message-text {
             word-break: break-word;
-            margin-bottom: 8px;
-            font-size: 15px;
+            font-size: 14px;
+            margin-bottom: 6px;
         }
         .message-footer {
             display: flex;
             justify-content: space-between;
             align-items: center;
             font-size: 12px;
-            color: #888;
+            margin-top: 4px;
         }
-        .like-btn {
+        .action-btn {
             background: none;
             border: none;
             color: #ff5252;
             cursor: pointer;
-            font-size: 14px;
+            font-size: 12px;
             display: flex;
             align-items: center;
             gap: 4px;
+            padding: 2px 6px;
+            border-radius: 4px;
+        }
+        .donate-msg-btn {
+            color: #0088cc;
+            background: rgba(0, 136, 204, 0.1);
         }
         .input-container {
             padding: 12px;
@@ -97,18 +128,15 @@
             background: #2c2c2c;
             border: 1px solid #444;
             color: #fff;
-            border-radius: 4px;
-            font-size: 16px;
-        }
-        .input-container input::placeholder {
-            color: #888;
+            border-radius: 8px;
+            font-size: 15px;
         }
         .input-container button {
             background-color: #007bff;
             color: white;
             border: none;
-            padding: 10px 18px;
-            border-radius: 4px;
+            padding: 10px 16px;
+            border-radius: 8px;
             cursor: pointer;
             font-weight: bold;
         }
@@ -119,7 +147,7 @@
     <div class="header">
         <h1>PapaChat</h1>
         <div class="header-buttons">
-            <button onclick="donateTon()">💎 Допомогти TON</button>
+            <button onclick="donateTon('UQDXq1iAqu88tVRG62_k03kAXELu_1gzRBMye-VZoFRIRtWw')">💎 Чат-фонд</button>
             <button onclick="location.reload()">Оновити</button>
         </div>
     </div>
@@ -129,14 +157,23 @@
     </div>
 
     <div class="input-container">
-        <input type="text" id="message-input" placeholder="Введіть повідомлення або емодзі 💬...">
+        <input type="text" id="message-input" placeholder="Напишіть повідомлення 💬...">
         <button onclick="sendMessage()">Надіслати</button>
     </div>
 
     <script>
+        const tg = window.Telegram?.WebApp;
+        if (tg) {
+            tg.expand();
+            tg.ready();
+        }
+
+        const tgUser = tg?.initDataUnsafe?.user;
+        const userName = tgUser ? (tgUser.first_name + (tgUser.last_name ? ' ' + tgUser.last_name : '')) : 'Гість';
+        const userPhoto = tgUser?.photo_url || null;
+
         const SUPABASE_URL = 'https://hsboeykzidkilprcpyey.supabase.co';
         const SUPABASE_KEY = 'sb_publishable_itYl4wIpMrcdLLHyeaEoXw_7ajw1483';
-
         const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
         async function loadMessages() {
@@ -156,25 +193,53 @@
                 data.forEach(msg => {
                     const div = document.createElement('div');
                     div.className = 'message';
-                    
-                    const textDiv = document.createElement('div');
-                    textDiv.className = 'message-text';
-                    textDiv.innerText = msg.text || msg.content || '';
 
-                    const footerDiv = document.createElement('div');
-                    footerDiv.className = 'message-footer';
+                    // Аватар
+                    const avatar = document.createElement('div');
+                    avatar.className = 'avatar';
+                    if (msg.photo_url) {
+                        avatar.style.backgroundImage = `url('${msg.photo_url}')`;
+                    } else {
+                        avatar.innerText = (msg.author || 'Г')[0].toUpperCase();
+                    }
 
-                    // Лічильник голосів (лайків)
+                    // Контент
+                    const content = document.createElement('div');
+                    content.className = 'msg-content';
+
+                    const author = document.createElement('div');
+                    author.className = 'username';
+                    author.innerText = msg.author || 'Анонім';
+
+                    const text = document.createElement('div');
+                    text.className = 'message-text';
+                    text.innerText = msg.text || '';
+
+                    const footer = document.createElement('div');
+                    footer.className = 'message-footer';
+
+                    // Кнопка Лайка
                     const likesCount = msg.likes || 0;
                     const likeBtn = document.createElement('button');
-                    likeBtn.className = 'like-btn';
+                    likeBtn.className = 'action-btn';
                     likeBtn.innerHTML = `❤️ <span>${likesCount}</span>`;
                     likeBtn.onclick = () => addLike(msg.id, likesCount);
 
-                    footerDiv.appendChild(likeBtn);
-                    
-                    div.appendChild(textDiv);
-                    div.appendChild(footerDiv);
+                    // Кнопка Допомоги автору
+                    const helpBtn = document.createElement('button');
+                    helpBtn.className = 'action-btn donate-msg-btn';
+                    helpBtn.innerHTML = `💸 Підтримати`;
+                    helpBtn.onclick = () => donateToAuthor(msg.author, msg.wallet || "UQDXq1iAqu88tVRG62_k03kAXELu_1gzRBMye-VZoFRIRtWw");
+
+                    footer.appendChild(likeBtn);
+                    footer.appendChild(helpBtn);
+
+                    content.appendChild(author);
+                    content.appendChild(text);
+                    content.appendChild(footer);
+
+                    div.appendChild(avatar);
+                    div.appendChild(content);
                     container.appendChild(div);
                 });
                 container.scrollTop = container.scrollHeight;
@@ -186,17 +251,21 @@
             const text = input.value.trim();
             if (!text) return;
 
-            // Зберігаємо з початковою кількістю лайків 0
             const { error } = await supabaseClient
                 .from('messages')
-                .insert([{ text: text, likes: 0 }]);
+                .insert([{
+                    text: text,
+                    likes: 0,
+                    author: userName,
+                    photo_url: userPhoto
+                }]);
 
             if (error) {
-                alert('Помилка надсилання: ' + error.message);
-            } else {
-                input.value = '';
-                loadMessages();
+                await supabaseClient.from('messages').insert([{ text: text, likes: 0 }]);
             }
+            
+            input.value = '';
+            loadMessages();
         }
 
         async function addLike(id, currentLikes) {
@@ -205,13 +274,24 @@
                 .update({ likes: currentLikes + 1 })
                 .eq('id', id);
 
-            if (!error) {
-                loadMessages();
+            if (!error) loadMessages();
+        }
+
+        function donateToAuthor(authorName, wallet) {
+            if (navigator.clipboard) {
+                navigator.clipboard.writeText(wallet);
+            }
+            
+            const message = `Скопійовано TON-гаманець для підтримки ${authorName}:\n\n${wallet}`;
+            if (tg?.showAlert) {
+                tg.showAlert(message);
+            } else {
+                alert(message);
             }
         }
 
-        function donateTon() {
-            alert('Дякуємо за бажання допомогти! Тут можна буде підключити ваш TON-гаманець або вказати адресу.');
+        function donateTon(wallet) {
+            donateToAuthor("Чат-фонд", wallet);
         }
 
         loadMessages();

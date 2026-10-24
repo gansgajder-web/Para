@@ -146,18 +146,17 @@
     <div class="header">
         <h1>PapaChat</h1>
         <div class="header-actions">
-            <!-- Кнопка TON Connect -->
             <div id="ton-connect-btn"></div>
         </div>
     </div>
 
     <div id="chat-container">
-        <!-- Повідомлення -->
+        <!-- Стрічка повідомлень -->
     </div>
 
     <div class="input-container">
         <input type="text" id="message-input" placeholder="Введіть повідомлення... 💬">
-        <button onclick="sendMessage()">Надіслати</button>
+        <button id="send-btn" onclick="sendMessage()">Надіслати</button>
     </div>
 
     <script>
@@ -167,14 +166,14 @@
             tg.ready();
         }
 
+        // Отримання імені профілю Telegram
         const tgUser = tg?.initDataUnsafe?.user;
-        const telegramName = tgUser ? (tgUser.first_name + (tgUser.last_name ? ' ' + tgUser.last_name : '')) : 'Михайло';
+        const myTelegramName = tgUser ? (tgUser.first_name + (tgUser.last_name ? ' ' + tgUser.last_name : '')) : 'Михайло';
 
         const SUPABASE_URL = 'https://hsboeykzidkilprcpyey.supabase.co';
         const SUPABASE_KEY = 'sb_publishable_itYl4wIpMrcdLLHyeaEoXw_7ajw1483';
         const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-        // Оновлений редирект на правильний новий лінк @walt[span_3](start_span)[span_3](end_span)
         const tonConnectUI = new TON_CONNECT_UI.TonConnectUI({
             manifestUrl: 'https://gansgajder-web.github.io/Para/tonconnect-manifest.json',
             buttonRootId: 'ton-connect-btn',
@@ -273,14 +272,19 @@
 
         async function sendMessage() {
             const input = document.getElementById('message-input');
+            const btn = document.getElementById('send-btn');
             const text = input.value.trim();
             if (!text) return;
 
-            let authorName = telegramName;
+            btn.disabled = true;
+
+            // Формування підпису: Ім'я Telegram + Скорочена адреса гаманця
+            let authorName = myTelegramName;
             if (connectedAddress) {
-                authorName = `${telegramName} (${formatAddress(connectedAddress)})`;
+                authorName = `${myTelegramName} (${formatAddress(connectedAddress)})`;
             }
 
+            // Збереження в Supabase
             const { error } = await supabaseClient
                 .from('messages')
                 .insert([{
@@ -290,7 +294,10 @@
                 }]);
 
             input.value = '';
-            setTimeout(loadMessages, 300);
+            btn.disabled = false;
+
+            // Оновлення стрічки після відправки
+            await loadMessages();
         }
 
         async function addLike(id, currentLikes) {

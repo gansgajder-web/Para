@@ -62,6 +62,10 @@
             gap: 10px;
             transition: border-color 0.3s;
         }
+        .message.private-msg {
+            border-color: #ffd54f;
+            background: #25231c;
+        }
         .message.highlight {
             border-color: #64b5f6;
             background: #252830;
@@ -311,8 +315,18 @@
             container.innerHTML = '';
             if (data) {
                 data.forEach(msg => {
+                    // Фільтрація приватних повідомлень:
+                    // Приватні бачить лише власник гаманця адміністратора (OWNER_WALLET) або той, хто їх надіслав
+                    if (msg.is_private) {
+                        const isMyMessage = connectedAddress && msg.author_wallet === connectedAddress;
+                        const isOwner = connectedAddress === OWNER_WALLET;
+                        if (!isMyMessage && !isOwner) {
+                            return; // Пропускаємо чужі приватні повідомлення
+                        }
+                    }
+
                     const div = document.createElement('div');
-                    div.className = 'message';
+                    div.className = msg.is_private ? 'message private-msg' : 'message';
                     div.id = `msg-${msg.id}`;
 
                     const authorName = msg.author || 'Михайло';
@@ -330,7 +344,7 @@
 
                     const author = document.createElement('div');
                     author.className = 'username';
-                    author.innerText = authorName;
+                    author.innerText = msg.is_private ? `🔒 [Приватне] ${authorName}` : authorName;
 
                     const timeSpan = document.createElement('div');
                     timeSpan.className = 'msg-time';
@@ -410,7 +424,6 @@
                     reactions.appendChild(pmBtn);
                     reactions.appendChild(shareBtn);
 
-                    // Донат автору тексту
                     const authorWallet = msg.author_wallet;
                     const donateBtn = document.createElement('button');
                     donateBtn.className = 'action-btn donate-msg-btn';
@@ -454,7 +467,6 @@
                 return;
             }
             
-            // Оплата 0.01 TON власнику журналу за приватне повідомлення
             const success = await handleDonate(OWNER_WALLET, "10000000", "Оплата приватного повідомлення");
             if (success) {
                 setReplyTo(msgId, authorName, true);
@@ -517,11 +529,12 @@
             }
 
             const insertData = {
-                text: isPrivateMode ? `[🔒 Приватне]: ${text}` : text,
+                text: text,
                 likes: 0,
                 dislikes: 0,
                 author: authorName,
-                author_wallet: connectedAddress || null
+                author_wallet: connectedAddress || null,
+                is_private: isPrivateMode
             };
 
             if (replyingToId) {

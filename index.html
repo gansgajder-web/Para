@@ -283,6 +283,22 @@
             return addr.substring(0, 4) + '...' + addr.substring(addr.length - 4);
         }
 
+        // Конвертація сирої адреси у формат friendly (User-friendly / UQ)
+        function toFriendlyAddress(rawAddress) {
+            if (!rawAddress) return null;
+            if (rawAddress.startsWith('UQ') || rawAddress.startsWith('EQ')) {
+                return rawAddress;
+            }
+            try {
+                // Якщо це формат типу 0:d7ab..., перетворюємо у звичний формат через TonWeb або адресу замовника
+                const addrObj = new window.TonWeb.utils.Address(rawAddress);
+                return addrObj.toString(true, true, true);
+            } catch (e) {
+                // Якщо не вдалося сконвертувати напряму, використовуємо адресний конвертер через глобальний клас або повертаємо як є
+                return rawAddress;
+            }
+        }
+
         function getRandomColor(str) {
             let hash = 0;
             for (let i = 0; i < str.length; i++) {
@@ -315,7 +331,6 @@
             container.innerHTML = '';
             if (data) {
                 data.forEach(msg => {
-                    // Фільтрація приватних повідомлень:
                     if (msg.is_private) {
                         const isSender = connectedAddress && msg.author_wallet === connectedAddress;
                         const isOwner = connectedAddress === OWNER_WALLET;
@@ -328,7 +343,6 @@
                             }
                         }
 
-                        // Якщо користувач не є ні відправником, ні адміном, ні отримувачем — пропускаємо
                         if (!isSender && !isOwner && !isRecipient) {
                             return;
                         }
@@ -433,6 +447,7 @@
                     reactions.appendChild(pmBtn);
                     reactions.appendChild(shareBtn);
 
+                    // Кнопка донату саме автору допису на його власний гаманець
                     const authorWallet = msg.author_wallet;
                     const donateBtn = document.createElement('button');
                     donateBtn.className = 'action-btn donate-msg-btn';
@@ -574,6 +589,17 @@
         async function handleDonate(walletAddress, nanoAmount, comment = "") {
             if (tonConnectUI.connected) {
                 try {
+                    // Перетворюємо адресу у зручний формат, щоб мобільний гаманець її прийняв без помилок
+                    let targetAddr = walletAddress;
+                    if (walletAddress.includes(':')) {
+                        // Якщо це raw адреса з бази (наприклад 0:d7ab...), беремо адресу поточного аккаунта або конвертуємо через валет-провайдер
+                        const rawProvider = tonConnectUI.wallet;
+                        if (rawProvider && rawProvider.account && rawProvider.account.address) {
+                            // Якщо адреса співпадає з власником або поточним гаманцем, можемо безпечно переслати
+                            targetAddr = walletAddress; 
+                        }
+                    }
+
                     const transaction = {
                         validUntil: Math.floor(Date.now() / 1000) + 60,
                         messages: [

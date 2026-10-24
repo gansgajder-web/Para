@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Para App</title>
+  
+  <!-- Подключаем официальную библиотеку TON Connect UI -->
+  <script src="https://unpkg.com/@tonconnect/ui@latest/dist/tonconnect-ui.min.js"></script>
+
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      background-color: #1a1a1a;
+      color: #ffffff;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      margin: 0;
+      padding: 20px;
+      box-sizing: border-box;
+    }
+
+    .container {
+      background: #2a2a2a;
+      padding: 30px;
+      border-radius: 16px;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+      text-align: center;
+      max-width: 400px;
+      width: 100%;
+    }
+
+    h1 {
+      margin-top: 0;
+      color: #0088cc;
+    }
+
+    #wallet-info {
+      margin-top: 20px;
+      word-break: break-all;
+      background: #1a1a1a;
+      padding: 12px;
+      border-radius: 8px;
+      font-size: 14px;
+      display: none;
+    }
+
+    #ton-connect {
+      display: flex;
+      justify-content: center;
+      margin-top: 20px;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="container">
+    <h1>Проєкт Para</h1>
+    <p>Підключіть ваш TON-кошелек для продолжения</p>
+
+    <!-- Контейнер для кнопки TON Connect -->
+    <div id="ton-connect"></div>
+
+    <!-- Блок для отображения адреса кошелька -->
+    <div id="wallet-info">
+      <strong>Кошелек подключен:</strong>
+      <div id="wallet-address" style="margin-top: 5px; color: #4caf50;"></div>
+    </div>
+  </div>
+
+  <script>
+    // Инициализация TON Connect UI с вашим манифестом
+    const tonConnectUI = new TON_CONNECT_UI.TonConnectUI({
+      manifestUrl: 'https://gansgajder-web.github.io/Para/tonconnect-manifest.json',
+      buttonRootId: 'ton-connect'
+    });
+
+    // Отслеживание состояния подключения кошелька
+    tonConnectUI.onStatusChange(wallet => {
+      const walletInfo = document.getElementById('wallet-info');
+      const walletAddress = document.getElementById('wallet-address');
+
+      if (wallet) {
+        // Кошелек подключен
+        const address = wallet.account.address;
+        walletAddress.innerText = address;
+        walletInfo.style.display = 'block';
+      } else {
+        // Кошелек отключен
+        walletInfo.style.display = 'none';
+        walletAddress.innerText = '';
+      }
+    });
+  </script>
+
+</body>
+</html>

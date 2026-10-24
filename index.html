@@ -132,26 +132,32 @@
     });
 
     async function fetchMessages() {
-        const { data, error } = await supabase
-            .from('messages')
-            .select('*')
-            .order('created_at', { ascending: true });
+        try {
+            const { data, error } = await supabase
+                .from('messages')
+                .select('*')
+                .order('created_at', { ascending: true });
 
-        if (error) {
-            console.error(error);
-            return;
+            const chatBox = document.getElementById('chatBox');
+
+            if (error) {
+                console.error('Supabase error:', error);
+                chatBox.innerHTML = `<div style="color: #ef4444; text-align: center; margin-top: 140px; padding: 10px;">Помилка підключення:<br>${error.message}</div>`;
+                return;
+            }
+
+            chatBox.innerHTML = '';
+
+            if (!data || data.length === 0) {
+                chatBox.innerHTML = '<div style="color: #64748b; text-align: center; margin-top: 150px;">Поки немає повідомлень. Напишіть першим!</div>';
+                return;
+            }
+
+            data.forEach(msg => renderMessage(msg));
+            chatBox.scrollTop = chatBox.scrollHeight;
+        } catch (err) {
+            console.error('Fetch error:', err);
         }
-
-        const chatBox = document.getElementById('chatBox');
-        chatBox.innerHTML = '';
-
-        if (!data || data.length === 0) {
-            chatBox.innerHTML = '<div style="color: #64748b; text-align: center; margin-top: 150px;">Поки немає повідомлень. Напишіть першим!</div>';
-            return;
-        }
-
-        data.forEach(msg => renderMessage(msg));
-        chatBox.scrollTop = chatBox.scrollHeight;
     }
 
     function renderMessage(msg) {
@@ -169,7 +175,7 @@
             <div class="msg-footer">
                 <span>🕒 ${timeStr}</span>
                 <div class="actions">
-                    <button class="btn-action" onclick="likeMessage(${msg.id}, ${msg.likes})">❤️ ${msg.likes}</button>
+                    <button class="btn-action" onclick="likeMessage(${msg.id}, ${msg.likes})">❤️ ${msg.likes || 0}</button>
                     <button class="btn-action" style="background: #0284c7;" onclick="donateTON('${msg.author_wallet}')">💎 Донат TON</button>
                 </div>
             </div>
@@ -190,14 +196,19 @@
             author_wallet: currentWallet
         }]);
 
-        if (error) console.error("Помилка відправки:", error);
+        if (error) {
+            alert('Помилка надсилання: ' + error.message);
+        } else {
+            fetchMessages();
+        }
     }
 
     async function likeMessage(id, currentLikes) {
         await supabase
             .from('messages')
-            .update({ likes: currentLikes + 1 })
+            .update({ likes: (currentLikes || 0) + 1 })
             .eq('id', id);
+        fetchMessages();
     }
 
     async function donateTON(recipientAddress) {
@@ -227,13 +238,6 @@
             console.error("Помилка транзакції:", e);
         }
     }
-
-    supabase
-        .channel('public:messages')
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'messages' }, payload => {
-            fetchMessages();
-        })
-        .subscribe();
 
     function escapeHtml(text) {
         return text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");

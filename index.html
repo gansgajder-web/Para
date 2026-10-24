@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PapaChat</title>
+    <title>ЖЖ — Живий журнал</title>
     <!-- Telegram WebApp SDK -->
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <!-- Supabase JS -->
@@ -54,12 +54,17 @@
         }
         .message {
             background: #1e1e1e;
-            padding: 10px 12px;
+            padding: 12px 14px;
             border-radius: 10px;
-            max-width: 85%;
+            max-width: 90%;
             border: 1px solid #2a2a2a;
             display: flex;
             gap: 10px;
+            transition: border-color 0.3s;
+        }
+        .message.highlight {
+            border-color: #64b5f6;
+            background: #252830;
         }
         .avatar {
             width: 38px;
@@ -94,10 +99,27 @@
             font-size: 10px;
             color: #888;
         }
+        /* Стиль для блоку цитування у відповіді */
+        .reply-quote {
+            background: rgba(100, 181, 246, 0.1);
+            border-left: 3px solid #64b5f6;
+            padding: 6px 8px;
+            margin-bottom: 6px;
+            border-radius: 4px;
+            font-size: 12px;
+            color: #b0bec5;
+        }
+        .reply-quote-author {
+            font-weight: bold;
+            color: #64b5f6;
+            margin-bottom: 2px;
+        }
         .message-text {
             word-break: break-word;
             font-size: 14px;
-            margin-bottom: 6px;
+            margin-bottom: 8px;
+            white-space: pre-wrap;
+            line-height: 1.4;
         }
         .message-footer {
             display: flex;
@@ -105,10 +127,13 @@
             align-items: center;
             font-size: 12px;
             margin-top: 4px;
+            border-top: 1px solid rgba(255,255,255,0.05);
+            padding-top: 6px;
         }
         .reactions {
             display: flex;
-            gap: 8px;
+            gap: 6px;
+            flex-wrap: wrap;
         }
         .action-btn {
             background: rgba(255, 255, 255, 0.05);
@@ -131,37 +156,64 @@
             border-color: rgba(0, 136, 204, 0.3);
             font-weight: bold;
         }
+        /* Панель активної відповіді над полем введення */
+        #reply-preview-container {
+            display: none;
+            background: #252830;
+            padding: 8px 12px;
+            border-top: 1px solid #333;
+            font-size: 12px;
+            color: #b0bec5;
+            justify-content: space-between;
+            align-items: center;
+        }
+        #reply-preview-container.active {
+            display: flex;
+        }
+        .cancel-reply {
+            background: none;
+            border: none;
+            color: #ff5252;
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 14px;
+        }
         .input-container {
-            padding: 12px;
+            padding: 10px 12px;
             background: #1f1f1f;
             display: flex;
             gap: 10px;
             border-top: 1px solid #333;
+            align-items: center;
         }
-        .input-container input {
+        .input-container textarea {
             flex: 1;
-            padding: 12px;
+            padding: 10px;
             background: #2c2c2c;
             border: 1px solid #444;
             color: #fff;
             border-radius: 8px;
-            font-size: 15px;
+            font-size: 14px;
+            resize: none;
+            height: 40px;
+            font-family: inherit;
         }
         .input-container button {
             background-color: #007bff;
             color: white;
             border: none;
-            padding: 10px 16px;
+            padding: 0 16px;
             border-radius: 8px;
             cursor: pointer;
             font-weight: bold;
+            height: 42px;
         }
     </style>
 </head>
 <body>
 
     <div class="header">
-        <h1>PapaChat</h1>
+        <h1>📖 ЖЖ (Живий журнал)</h1>
         <div class="header-actions">
             <div id="ton-connect-btn"></div>
         </div>
@@ -171,9 +223,15 @@
         <!-- Повідомлення -->
     </div>
 
+    <!-- Блок попереднього перегляду відповіді -->
+    <div id="reply-preview-container">
+        <div>↩️ Відповідь на: <span id="reply-to-author" style="font-weight: bold; color: #64b5f6;"></span></div>
+        <button class="cancel-reply" onclick="cancelReply()">✕</button>
+    </div>
+
     <div class="input-container">
-        <input type="text" id="message-input" placeholder="Введіть повідомлення... 💬">
-        <button id="send-btn" onclick="sendMessage()">Надіслати</button>
+        <textarea id="message-input" placeholder="Напишіть вірш або думку... ✍️"></textarea>
+        <button id="send-btn" onclick="sendMessage()">Опублікувати</button>
     </div>
 
     <script>
@@ -199,6 +257,8 @@
         });
 
         let connectedAddress = null;
+        let replyingToId = null;       // ID повідомлення, на яке відповідаємо
+        let replyingToData = null;     // Дані автора та тексту для цитати
 
         tonConnectUI.onStatusChange(wallet => {
             if (wallet) {
@@ -238,11 +298,18 @@
 
             if (error) return;
 
+            // Зберігаємо дані в мапу для швидкого пошуку батьківського повідомлення при відповіді
+            const messagesMap = {};
+            if (data) {
+                data.forEach(msg => messagesMap[msg.id] = msg);
+            }
+
             container.innerHTML = '';
             if (data) {
                 data.forEach(msg => {
                     const div = document.createElement('div');
                     div.className = 'message';
+                    div.id = `msg-${msg.id}`;
 
                     const authorName = msg.author || 'Михайло';
 
@@ -268,9 +335,35 @@
                     headerRow.appendChild(author);
                     headerRow.appendChild(timeSpan);
 
+                    content.appendChild(headerRow);
+
+                    // Якщо це відповідь на інше повідомлення — створюємо блок цитати
+                    if (msg.reply_to && messagesMap[msg.reply_to]) {
+                        const parentMsg = messagesMap[msg.reply_to];
+                        const quoteDiv = document.createElement('div');
+                        quoteDiv.className = 'reply-quote';
+                        
+                        const quoteAuthor = document.createElement('div');
+                        quoteAuthor.className = 'reply-quote-author';
+                        quoteAuthor.innerText = parentMsg.author || 'Учасник';
+
+                        const quoteText = document.createElement('div');
+                        quoteText.innerText = parentMsg.text ? (parentMsg.text.length > 60 ? parentMsg.text.substring(0, 60) + '...' : parentMsg.text) : '';
+
+                        quoteDiv.appendChild(quoteAuthor);
+                        quoteDiv.appendChild(quoteText);
+                        
+                        // Клік по цитаті переносить до оригінального повідомлення
+                        quoteDiv.onclick = () => scrollToMessage(msg.reply_to);
+                        quoteDiv.style.cursor = 'pointer';
+
+                        content.appendChild(quoteDiv);
+                    }
+
                     const text = document.createElement('div');
                     text.className = 'message-text';
                     text.innerText = msg.text || '';
+                    content.appendChild(text);
 
                     const footer = document.createElement('div');
                     footer.className = 'message-footer';
@@ -290,8 +383,22 @@
                     dislikeBtn.innerHTML = `👎 <span>${dislikesCount}</span>`;
                     dislikeBtn.onclick = () => updateReaction(msg.id, 'dislikes', dislikesCount + 1);
 
+                    // Кнопка "Відповісти"
+                    const replyBtn = document.createElement('button');
+                    replyBtn.className = 'action-btn';
+                    replyBtn.innerHTML = `↩️ Відповісти`;
+                    replyBtn.onclick = () => setReplyTo(msg.id, authorName, msg.text);
+
+                    // Кнопка "Поділитися"
+                    const shareBtn = document.createElement('button');
+                    shareBtn.className = 'action-btn';
+                    shareBtn.innerHTML = `🔗 Поділитися`;
+                    shareBtn.onclick = () => sharePost(msg.id);
+
                     reactions.appendChild(likeBtn);
                     reactions.appendChild(dislikeBtn);
+                    reactions.appendChild(replyBtn);
+                    reactions.appendChild(shareBtn);
 
                     const targetWallet = "UQDXq1iAqu88tVRG62_k03kAXELu_1gzRBMye-VZoFRIRtWw";
                     const helpBtn = document.createElement('button');
@@ -301,15 +408,61 @@
 
                     footer.appendChild(reactions);
                     footer.appendChild(helpBtn);
-
-                    content.appendChild(headerRow);
-                    content.appendChild(text);
                     content.appendChild(footer);
 
                     div.appendChild(avatar);
                     div.appendChild(content);
                     container.appendChild(div);
                 });
+                
+                checkUrlHash();
+            }
+        }
+
+        function setReplyTo(id, authorName, textSnippet) {
+            replyingToId = id;
+            document.getElementById('reply-to-author').innerText = authorName;
+            document.getElementById('reply-preview-container').classList.add('active');
+            document.getElementById('message-input').focus();
+        }
+
+        function cancelReply() {
+            replyingToId = null;
+            document.getElementById('reply-preview-container').classList.remove('active');
+        }
+
+        function scrollToMessage(id) {
+            const el = document.getElementById(`msg-${id}`);
+            if (el) {
+                el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                el.classList.add('highlight');
+                setTimeout(() => el.classList.remove('highlight'), 3000);
+            }
+        }
+
+        function sharePost(msgId) {
+            const currentUrl = window.location.href.split('#')[0] + `#msg-${msgId}`;
+            if (navigator.clipboard) {
+                navigator.clipboard.writeText(currentUrl);
+            }
+            if (tg?.showAlert) {
+                tg.showAlert(`Посилання на цей допис скопійовано!\n\n${currentUrl}`);
+            } else {
+                alert(`Посилання скопійовано: ${currentUrl}`);
+            }
+        }
+
+        function checkUrlHash() {
+            const hash = window.location.hash;
+            if (hash) {
+                const targetElement = document.querySelector(hash);
+                if (targetElement) {
+                    targetElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    targetElement.classList.add('highlight');
+                    setTimeout(() => targetElement.classList.remove('highlight'), 3000);
+                }
+            } else {
+                const container = document.getElementById('chat-container');
                 container.scrollTop = container.scrollHeight;
             }
         }
@@ -327,17 +480,25 @@
                 authorName = `${myTelegramName} (${formatAddress(connectedAddress)})`;
             }
 
+            const insertData = {
+                text: text,
+                likes: 0,
+                dislikes: 0,
+                author: authorName
+            };
+
+            // Якщо це відповідь на інше повідомлення, додаємо поле reply_to
+            if (replyingToId) {
+                insertData.reply_to = replyingToId;
+            }
+
             const { error } = await supabaseClient
                 .from('messages')
-                .insert([{
-                    text: text,
-                    likes: 0,
-                    dislikes: 0,
-                    author: authorName
-                }]);
+                .insert([insertData]);
 
             input.value = '';
             btn.disabled = false;
+            cancelReply();
             await loadMessages();
         }
 

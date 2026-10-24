@@ -316,12 +316,8 @@
             if (data) {
                 data.forEach(msg => {
                     // Фільтрація приватних повідомлень:
-                    // Приватне повідомлення бачить:
-                    // 1. Адміністратор (OWNER_WALLET)
-                    // 2. Автор цього приватного повідомлення (хто надіслав)
-                    // 3. Автор оригінального допису (на який відповідають цим приватним повідомленням)
                     if (msg.is_private) {
-                        const isMyMessage = connectedAddress && msg.author_wallet === connectedAddress;
+                        const isSender = connectedAddress && msg.author_wallet === connectedAddress;
                         const isOwner = connectedAddress === OWNER_WALLET;
                         
                         let isRecipient = false;
@@ -332,8 +328,9 @@
                             }
                         }
 
-                        if (!isMyMessage && !isOwner && !isRecipient) {
-                            return; // Пропускаємо, якщо користувач не має доступу
+                        // Якщо користувач не є ні відправником, ні адміном, ні отримувачем — пропускаємо
+                        if (!isSender && !isOwner && !isRecipient) {
+                            return;
                         }
                     }
 

@@ -12,6 +12,9 @@
             margin: 0;
             padding: 0;
             background-color: #f4f4f9;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
         }
         .header {
             background-color: #007bff;
@@ -25,19 +28,42 @@
             margin: 0;
             font-size: 20px;
         }
-        .header button {
-            background-color: #fff;
-            color: #007bff;
+        #chat-container {
+            flex: 1;
+            padding: 15px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        .message {
+            background: white;
+            padding: 10px;
+            border-radius: 8px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            max-width: 80%;
+        }
+        .input-container {
+            padding: 10px;
+            background: white;
+            display: flex;
+            gap: 10px;
+            border-top: 1px solid #ddd;
+        }
+        .input-container input {
+            flex: 1;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            font-size: 16px;
+        }
+        .input-container button {
+            background-color: #007bff;
+            color: white;
             border: none;
-            padding: 8px 12px;
+            padding: 10px 20px;
             border-radius: 4px;
             cursor: pointer;
-            font-weight: bold;
-        }
-        .error-message {
-            color: red;
-            text-align: center;
-            margin-top: 50px;
             font-weight: bold;
         }
     </style>
@@ -46,39 +72,67 @@
 
     <div class="header">
         <h1>PapaChat</h1>
-        <button onclick="location.reload()">Оновити</button>
+        <span id="status" style="font-size: 12px; color: #d4edda;">Підключено</span>
     </div>
 
-    <div id="status" class="error-message"></div>
+    <div id="chat-container">
+        <!-- Повідомлення з'являтимуться тут -->
+    </div>
+
+    <div class="input-container">
+        <input type="text" id="message-input" placeholder="Введіть повідомлення...">
+        <button onclick="sendMessage()">Надіслати</button>
+    </div>
 
     <script>
-        // Ваші реальні дані проєкту Supabase
         const SUPABASE_URL = 'https://hsboeykzidkilprcpyey.supabase.co';
         const SUPABASE_KEY = 'sb_publishable_itYl4wIpMrcdLLHyeaEoXw_7ajw1483';
 
-        try {
-            // Ініціалізація клієнта Supabase
-            const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-            
-            // Тестова перевірка підключення
-            async function checkConnection() {
-                const { data, error } = await supabaseClient.from('_not_exists_test_').select('*').limit(1);
-                // Якщо помилка пов'язана з тим, що таблиці немає — значить підключення до бази успішне!
-                if (error && error.code === 'PGRST116' || error && error.message.includes('relation') || !error) {
-                    document.getElementById('status').style.color = 'green';
-                    document.getElementById('status').innerText = 'Підключення до бази успішне!';
-                } else if (error && error.message.includes('API key')) {
-                    document.getElementById('status').innerText = 'Помилка підключення до бази: Invalid API key';
-                } else {
-                    document.getElementById('status').style.color = 'green';
-                    document.getElementById('status').innerText = 'Підключення встановлено!';
-                }
+        const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+        async function loadMessages() {
+            const container = document.getElementById('chat-container');
+            const { data, error } = await supabaseClient
+                .from('messages')
+                .select('*')
+                .order('id', { ascending: true });
+
+            if (error) {
+                console.error('Помилка завантаження:', error);
+                return;
             }
-            
-            checkConnection();
-        } catch (err) {
-            document.getElementById('status').innerText = 'Помилка ініціалізації: ' + err.message;
+
+            container.innerHTML = '';
+            if (data) {
+                data.forEach(msg => {
+                    const div = document.createElement('div');
+                    div.className = 'message';
+                    div.innerText = msg.text || msg.content || JSON.stringify(msg);
+                    container.appendChild(div);
+                });
+                container.scrollTop = container.scrollHeight;
+            }
         }
+
+        async function sendMessage() {
+            const input = document.getElementById('message-input');
+            const text = input.value.trim();
+            if (!text) return;
+
+            const { error } = await supabaseClient
+                .from('messages')
+                .insert([{ text: text }]);
+
+            if (error) {
+                alert('Помилка надсилання: ' + error.message);
+            } else {
+                input.value = '';
+                loadMessages();
+            }
+        }
+
+        // Завантажуємо повідомлення при відкритті
+        loadMessages();
     </script>
 </body>
 </html>

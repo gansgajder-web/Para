@@ -99,7 +99,6 @@
             font-size: 10px;
             color: #888;
         }
-        /* Стиль для блоку цитування у відповіді */
         .reply-quote {
             background: rgba(100, 181, 246, 0.1);
             border-left: 3px solid #64b5f6;
@@ -156,7 +155,6 @@
             border-color: rgba(0, 136, 204, 0.3);
             font-weight: bold;
         }
-        /* Панель активної відповіді над полем введення */
         #reply-preview-container {
             display: none;
             background: #252830;
@@ -223,7 +221,6 @@
         <!-- Повідомлення -->
     </div>
 
-    <!-- Блок попереднього перегляду відповіді -->
     <div id="reply-preview-container">
         <div>↩️ Відповідь на: <span id="reply-to-author" style="font-weight: bold; color: #64b5f6;"></span></div>
         <button class="cancel-reply" onclick="cancelReply()">✕</button>
@@ -257,8 +254,8 @@
         });
 
         let connectedAddress = null;
-        let replyingToId = null;       // ID повідомлення, на яке відповідаємо
-        let replyingToData = null;     // Дані автора та тексту для цитати
+        let replyingToId = null;
+        let replyingToData = null;
 
         tonConnectUI.onStatusChange(wallet => {
             if (wallet) {
@@ -298,7 +295,6 @@
 
             if (error) return;
 
-            // Зберігаємо дані в мапу для швидкого пошуку батьківського повідомлення при відповіді
             const messagesMap = {};
             if (data) {
                 data.forEach(msg => messagesMap[msg.id] = msg);
@@ -337,7 +333,6 @@
 
                     content.appendChild(headerRow);
 
-                    // Якщо це відповідь на інше повідомлення — створюємо блок цитати
                     if (msg.reply_to && messagesMap[msg.reply_to]) {
                         const parentMsg = messagesMap[msg.reply_to];
                         const quoteDiv = document.createElement('div');
@@ -353,7 +348,6 @@
                         quoteDiv.appendChild(quoteAuthor);
                         quoteDiv.appendChild(quoteText);
                         
-                        // Клік по цитаті переносить до оригінального повідомлення
                         quoteDiv.onclick = () => scrollToMessage(msg.reply_to);
                         quoteDiv.style.cursor = 'pointer';
 
@@ -362,7 +356,12 @@
 
                     const text = document.createElement('div');
                     text.className = 'message-text';
-                    text.innerText = msg.text || '';
+                    
+                    // Перетворення звичайних посилань на клікабельні лінки
+                    let rawText = msg.text || '';
+                    const urlRegex = /(https?:\/\/[^\s]+)/g;
+                    text.innerHTML = rawText.replace(urlRegex, '<a href="$1" target="_blank" style="color: #64b5f6; text-decoration: underline;">$1</a>');
+                    
                     content.appendChild(text);
 
                     const footer = document.createElement('div');
@@ -383,13 +382,11 @@
                     dislikeBtn.innerHTML = `👎 <span>${dislikesCount}</span>`;
                     dislikeBtn.onclick = () => updateReaction(msg.id, 'dislikes', dislikesCount + 1);
 
-                    // Кнопка "Відповісти"
                     const replyBtn = document.createElement('button');
                     replyBtn.className = 'action-btn';
                     replyBtn.innerHTML = `↩️ Відповісти`;
                     replyBtn.onclick = () => setReplyTo(msg.id, authorName, msg.text);
 
-                    // Кнопка "Поділитися"
                     const shareBtn = document.createElement('button');
                     shareBtn.className = 'action-btn';
                     shareBtn.innerHTML = `🔗 Поділитися`;
@@ -487,7 +484,6 @@
                 author: authorName
             };
 
-            // Якщо це відповідь на інше повідомлення, додаємо поле reply_to
             if (replyingToId) {
                 insertData.reply_to = replyingToId;
             }

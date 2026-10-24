@@ -13,7 +13,7 @@
 
     <style>
         body {
-            font-family: Arial, sans-serif;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
             margin: 0;
             padding: 0;
             background-color: #121212;
@@ -144,7 +144,6 @@
     <div class="header">
         <h1>PapaChat</h1>
         <div class="header-actions">
-            <!-- Кнопка авторизації через TON Connect -->
             <div id="ton-connect-btn"></div>
         </div>
     </div>
@@ -165,36 +164,36 @@
             tg.ready();
         }
 
-        // Ініціалізація Supabase
+        // Автоматичне отримання даних користувача з Telegram
+        const tgUser = tg?.initDataUnsafe?.user;
+        const tgName = tgUser ? (tgUser.first_name + (tgUser.last_name ? ' ' + tgUser.last_name : '')) : null;
+
         const SUPABASE_URL = 'https://hsboeykzidkilprcpyey.supabase.co';
         const SUPABASE_KEY = 'sb_publishable_itYl4wIpMrcdLLHyeaEoXw_7ajw1483';
         const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-        // Ініціалізація TON Connect
+        // TON Connect Ініціалізація
         const tonConnectUI = new TON_CONNECT_UI.TonConnectUI({
             manifestUrl: 'https://gansgajder-web.github.io/manifest.json',
             buttonRootId: 'ton-connect-btn'
         });
 
-        let userWalletAddress = null;
+        let currentWallet = null;
 
-        // Відстежуємо стан підключення гаманця
         tonConnectUI.onStatusChange(wallet => {
             if (wallet) {
-                userWalletAddress = wallet.account.address;
-                console.log("Підключено гаманець:", userWalletAddress);
+                currentWallet = wallet.account.address;
             } else {
-                userWalletAddress = null;
+                currentWallet = null;
             }
+            loadMessages();
         });
 
-        // Скорочення TON адреси (наприклад, UQDX...RtWw)
         function formatAddress(addr) {
             if (!addr) return "Гість";
             return addr.substring(0, 4) + '...' + addr.substring(addr.length - 4);
         }
 
-        // Колір аватара
         function getRandomColor(str) {
             let hash = 0;
             for (let i = 0; i < str.length; i++) {
@@ -211,10 +210,7 @@
                 .select('*')
                 .order('id', { ascending: true });
 
-            if (error) {
-                console.error('Помилка завантаження:', error);
-                return;
-            }
+            if (error) return;
 
             container.innerHTML = '';
             if (data) {
@@ -222,22 +218,20 @@
                     const div = document.createElement('div');
                     div.className = 'message';
 
-                    const authorWallet = msg.author || msg.wallet;
-                    const displayName = authorWallet ? formatAddress(authorWallet) : 'Анонім';
+                    // Ім'я автора або адреса
+                    const authorName = msg.author || (msg.wallet ? formatAddress(msg.wallet) : 'Учасник');
 
-                    // Аватарка
                     const avatar = document.createElement('div');
                     avatar.className = 'avatar';
-                    avatar.style.backgroundColor = getRandomColor(displayName);
-                    avatar.innerText = displayName[0].toUpperCase();
+                    avatar.style.backgroundColor = getRandomColor(authorName);
+                    avatar.innerText = authorName[0].toUpperCase();
 
-                    // Контент
                     const content = document.createElement('div');
                     content.className = 'msg-content';
 
                     const author = document.createElement('div');
                     author.className = 'username';
-                    author.innerText = displayName;
+                    author.innerText = authorName;
 
                     const text = document.createElement('div');
                     text.className = 'message-text';
@@ -246,18 +240,16 @@
                     const footer = document.createElement('div');
                     footer.className = 'message-footer';
 
-                    // Кнопка Лайка
                     const likesCount = msg.likes || 0;
                     const likeBtn = document.createElement('button');
                     likeBtn.className = 'action-btn';
                     likeBtn.innerHTML = `❤️ <span>${likesCount}</span>`;
                     likeBtn.onclick = () => addLike(msg.id, likesCount);
 
-                    // Кнопка підтримати саме автора
                     const helpBtn = document.createElement('button');
                     helpBtn.className = 'action-btn donate-msg-btn';
                     helpBtn.innerHTML = `💸 Підтримати`;
-                    helpBtn.onclick = () => sendTonToAuthor(authorWallet || "UQDXq1iAqu88tVRG62_k03kAXELu_1gzRBMye-VZoFRIRtWw");
+                    helpBtn.onclick = () => sendSupport(msg.wallet || "UQDXq1iAqu88tVRG62_k03kAXELu_1gzRBMye-VZoFRIRtWw");
 
                     footer.appendChild(likeBtn);
                     footer.appendChild(helpBtn);
@@ -279,16 +271,16 @@
             const text = input.value.trim();
             if (!text) return;
 
-            // Зберігаємо автора як його TON-адресу
-            const authorIdentifier = userWalletAddress || (tg?.initDataUnsafe?.user?.first_name || 'Анонім');
+            // Використовуємо ім'я Telegram, а якщо підключено гаманець — зберігаємо і його
+            const authorName = tgName || (currentWallet ? formatAddress(currentWallet) : 'Михайло');
 
             const { error } = await supabaseClient
                 .from('messages')
                 .insert([{
                     text: text,
                     likes: 0,
-                    author: authorIdentifier,
-                    wallet: userWalletAddress
+                    author: authorName,
+                    wallet: currentWallet || "UQDXq1iAqu88tVRG62_k03kAXELu_1gzRBMye-VZoFRIRtWw"
                 }]);
 
             if (error) {
@@ -308,13 +300,13 @@
             if (!error) loadMessages();
         }
 
-        // Переказ TON автору повідомлення
-        function sendTonToAuthor(walletAddress) {
-            const tonUrl = `ton://transfer/${walletAddress}`;
-            if (tg?.openLink) {
-                tg.openLink(tonUrl);
+        function sendSupport(walletAddress) {
+            if (tg?.openTelegramLink) {
+                tg.openTelegramLink(`https://t.me/wallet?startattach=ton_${walletAddress}`);
+            } else if (tg?.openLink) {
+                tg.openLink(`https://tonkeeper.app/transfer/${walletAddress}`);
             } else {
-                window.location.href = tonUrl;
+                window.open(`https://tonkeeper.app/transfer/${walletAddress}`, '_blank');
             }
         }
 

@@ -4,29 +4,47 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>PapaChat</title>
-    <!-- Підключаємо бібліотеку Supabase JS -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
         body {
             font-family: Arial, sans-serif;
             margin: 0;
             padding: 0;
-            background-color: #f4f4f9;
+            background-color: #121212;
+            color: #e0e0e0;
             display: flex;
             flex-direction: column;
             height: 100vh;
         }
         .header {
-            background-color: #007bff;
-            color: white;
+            background-color: #1f1f1f;
+            color: #ffffff;
             padding: 15px;
             display: flex;
             justify-content: space-between;
             align-items: center;
+            border-bottom: 1px solid #333;
         }
         .header h1 {
             margin: 0;
             font-size: 20px;
+        }
+        .header-buttons {
+            display: flex;
+            gap: 8px;
+        }
+        .header button {
+            background-color: #333;
+            color: #ffffff;
+            border: 1px solid #555;
+            padding: 6px 10px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+            font-weight: bold;
+        }
+        .header button:hover {
+            background-color: #444;
         }
         #chat-container {
             flex: 1;
@@ -34,34 +52,62 @@
             overflow-y: auto;
             display: flex;
             flex-direction: column;
-            gap: 10px;
+            gap: 12px;
         }
         .message {
-            background: white;
-            padding: 10px;
+            background: #1e1e1e;
+            padding: 12px;
             border-radius: 8px;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-            max-width: 80%;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.5);
+            max-width: 85%;
+            border: 1px solid #2a2a2a;
+        }
+        .message-text {
+            word-break: break-word;
+            margin-bottom: 8px;
+            font-size: 15px;
+        }
+        .message-footer {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 12px;
+            color: #888;
+        }
+        .like-btn {
+            background: none;
+            border: none;
+            color: #ff5252;
+            cursor: pointer;
+            font-size: 14px;
+            display: flex;
+            align-items: center;
+            gap: 4px;
         }
         .input-container {
-            padding: 10px;
-            background: white;
+            padding: 12px;
+            background: #1f1f1f;
             display: flex;
             gap: 10px;
-            border-top: 1px solid #ddd;
+            border-top: 1px solid #333;
         }
         .input-container input {
             flex: 1;
-            padding: 10px;
-            border: 1px solid #ccc;
+            padding: 12px;
+            background: #2c2c2c;
+            border: 1px solid #444;
+            color: #fff;
             border-radius: 4px;
             font-size: 16px;
+        }
+        .input-container input::placeholder {
+            color: #888;
         }
         .input-container button {
             background-color: #007bff;
             color: white;
             border: none;
-            padding: 10px 20px;
+            padding: 10px 18px;
             border-radius: 4px;
             cursor: pointer;
             font-weight: bold;
@@ -72,15 +118,18 @@
 
     <div class="header">
         <h1>PapaChat</h1>
-        <span id="status" style="font-size: 12px; color: #d4edda;">Підключено</span>
+        <div class="header-buttons">
+            <button onclick="donateTon()">💎 Допомогти TON</button>
+            <button onclick="location.reload()">Оновити</button>
+        </div>
     </div>
 
     <div id="chat-container">
-        <!-- Повідомлення з'являтимуться тут -->
+        <!-- Повідомлення -->
     </div>
 
     <div class="input-container">
-        <input type="text" id="message-input" placeholder="Введіть повідомлення...">
+        <input type="text" id="message-input" placeholder="Введіть повідомлення або емодзі 💬...">
         <button onclick="sendMessage()">Надіслати</button>
     </div>
 
@@ -107,7 +156,25 @@
                 data.forEach(msg => {
                     const div = document.createElement('div');
                     div.className = 'message';
-                    div.innerText = msg.text || msg.content || JSON.stringify(msg);
+                    
+                    const textDiv = document.createElement('div');
+                    textDiv.className = 'message-text';
+                    textDiv.innerText = msg.text || msg.content || '';
+
+                    const footerDiv = document.createElement('div');
+                    footerDiv.className = 'message-footer';
+
+                    // Лічильник голосів (лайків)
+                    const likesCount = msg.likes || 0;
+                    const likeBtn = document.createElement('button');
+                    likeBtn.className = 'like-btn';
+                    likeBtn.innerHTML = `❤️ <span>${likesCount}</span>`;
+                    likeBtn.onclick = () => addLike(msg.id, likesCount);
+
+                    footerDiv.appendChild(likeBtn);
+                    
+                    div.appendChild(textDiv);
+                    div.appendChild(footerDiv);
                     container.appendChild(div);
                 });
                 container.scrollTop = container.scrollHeight;
@@ -119,9 +186,10 @@
             const text = input.value.trim();
             if (!text) return;
 
+            // Зберігаємо з початковою кількістю лайків 0
             const { error } = await supabaseClient
                 .from('messages')
-                .insert([{ text: text }]);
+                .insert([{ text: text, likes: 0 }]);
 
             if (error) {
                 alert('Помилка надсилання: ' + error.message);
@@ -131,7 +199,21 @@
             }
         }
 
-        // Завантажуємо повідомлення при відкритті
+        async function addLike(id, currentLikes) {
+            const { error } = await supabaseClient
+                .from('messages')
+                .update({ likes: currentLikes + 1 })
+                .eq('id', id);
+
+            if (!error) {
+                loadMessages();
+            }
+        }
+
+        function donateTon() {
+            alert('Дякуємо за бажання допомогти! Тут можна буде підключити ваш TON-гаманець або вказати адресу.');
+        }
+
         loadMessages();
     </script>
 </body>

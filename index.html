@@ -79,6 +79,8 @@
             font-weight: bold;
             font-size: 15px;
             flex-shrink: 0;
+            background-size: cover;
+            background-position: center;
             text-transform: uppercase;
         }
         .msg-content {
@@ -151,7 +153,7 @@
     <div class="header">
         <h1>PapaChat</h1>
         <div class="header-buttons">
-            <button class="fund-btn" onclick="sendSupport('UQDXq1iAqu88tVRG62_k03kAXELu_1gzRBMye-VZoFRIRtWw')">💎 Чат-фонд</button>
+            <button class="fund-btn" onclick="copyWallet('UQDXq1iAqu88tVRG62_k03kAXELu_1gzRBMye-VZoFRIRtWw')">💎 Чат-фонд</button>
             <button onclick="location.reload()">Оновити</button>
         </div>
     </div>
@@ -172,9 +174,10 @@
             tg.ready();
         }
 
-        // Автоматично визначаємо ім'я користувача
+        // Беремо дані користувача напряму з Telegram
         const tgUser = tg?.initDataUnsafe?.user;
-        const myName = tgUser ? (tgUser.first_name + (tgUser.last_name ? ' ' + tgUser.last_name : '')) : 'Учасник';
+        const myName = tgUser ? (tgUser.first_name + (tgUser.last_name ? ' ' + tgUser.last_name : '')) : 'Михайло';
+        const myPhoto = tgUser?.photo_url || null;
 
         const SUPABASE_URL = 'https://hsboeykzidkilprcpyey.supabase.co';
         const SUPABASE_KEY = 'sb_publishable_itYl4wIpMrcdLLHyeaEoXw_7ajw1483';
@@ -205,11 +208,17 @@
                     div.className = 'message';
 
                     const authorName = msg.author || 'Учасник';
+                    const authorPhoto = msg.photo_url || null;
 
                     const avatar = document.createElement('div');
                     avatar.className = 'avatar';
-                    avatar.style.backgroundColor = getRandomColor(authorName);
-                    avatar.innerText = authorName[0].toUpperCase();
+                    
+                    if (authorPhoto) {
+                        avatar.style.backgroundImage = `url('${authorPhoto}')`;
+                    } else {
+                        avatar.style.backgroundColor = getRandomColor(authorName);
+                        avatar.innerText = authorName[0].toUpperCase();
+                    }
 
                     const content = document.createElement('div');
                     content.className = 'msg-content';
@@ -234,7 +243,7 @@
                     const helpBtn = document.createElement('button');
                     helpBtn.className = 'action-btn donate-msg-btn';
                     helpBtn.innerHTML = `💸 Підтримати`;
-                    helpBtn.onclick = () => sendSupport("UQDXq1iAqu88tVRG62_k03kAXELu_1gzRBMye-VZoFRIRtWw");
+                    helpBtn.onclick = () => copyWallet("UQDXq1iAqu88tVRG62_k03kAXELu_1gzRBMye-VZoFRIRtWw");
 
                     footer.appendChild(likeBtn);
                     footer.appendChild(helpBtn);
@@ -261,7 +270,8 @@
                 .insert([{
                     text: text,
                     likes: 0,
-                    author: myName
+                    author: myName,
+                    photo_url: myPhoto
                 }]);
 
             if (error) {
@@ -281,25 +291,15 @@
             if (!error) loadMessages();
         }
 
-        function sendSupport(walletAddress) {
-            // 1. Копіюємо адресу TON у буфер
+        function copyWallet(walletAddress) {
             if (navigator.clipboard) {
                 navigator.clipboard.writeText(walletAddress);
             }
-
-            // 2. Показуємо сповіщення
             if (tg?.showAlert) {
-                tg.showAlert(`Адресу TON скопійовано!\n\n${walletAddress}\n\nЗараз відкриється Telegram Wallet для переказу.`);
+                tg.showAlert(`Адресу TON скопійовано у буфер обміну!\n\n${walletAddress}`);
+            } else {
+                alert(`Адресу скопійовано: ${walletAddress}`);
             }
-
-            // 3. Відкриваємо безпосередньо Telegram Wallet (@wallet)
-            setTimeout(() => {
-                if (tg?.openTelegramLink) {
-                    tg.openTelegramLink('https://t.me/wallet');
-                } else {
-                    window.open('https://t.me/wallet', '_blank');
-                }
-            }, 500);
         }
 
         loadMessages();

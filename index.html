@@ -2,32 +2,113 @@
 <html lang="uk">
 <head>
     <meta charset="UTF-8">
-    <title>Para Content Hub</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Анонімний чат & Донати в TON</title>
+    <!-- Підключаємо стилі та бібліотеку TON Connect UI -->
+    <script src="https://unpkg.com/@tonconnect/ui@latest/dist/tonconnect-ui.min.js"></script>
     <style>
-        body { background: #121212; color: #eee; font-family: sans-serif; display: flex; justify-content: center; padding: 20px; }
-        .container { width: 100%; max-width: 500px; }
-        .box { background: #1e1e1e; padding: 20px; border-radius: 12px; margin-bottom: 15px; }
-        h2 { color: #00e676; margin-top: 0; }
-        .news { white-space: pre-wrap; color: #fff; line-height: 1.5; font-size: 1em; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background-color: #0f172a;
+            color: #f8fafc;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        .container {
+            width: 100%;
+            max-width: 600px;
+            background: #1e293b;
+            padding: 20px;
+            border-radius: 16px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+        }
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        h2 { margin: 0; font-size: 20px; }
+        #ton-connect {
+            /* Контейнер для кнопки гаманця */
+        }
+        .chat-box {
+            background: #0f172a;
+            border-radius: 12px;
+            height: 300px;
+            padding: 10px;
+            overflow-y: auto;
+            margin-bottom: 15px;
+            border: 1px solid #334155;
+        }
+        .input-group {
+            display: flex;
+            gap: 10px;
+        }
+        textarea {
+            flex: 1;
+            background: #0f172a;
+            border: 1px solid #334155;
+            color: #fff;
+            padding: 10px;
+            border-radius: 8px;
+            resize: none;
+            height: 40px;
+        }
+        button.send-btn {
+            background: #38bdf8;
+            color: #0f172a;
+            border: none;
+            padding: 0 20px;
+            border-radius: 8px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+        button.send-btn:hover { background: #0ea5e9; }
     </style>
 </head>
 <body>
-    <div class="container">
-        <div class="box">
-            <h2>Свіжий контент</h2>
-            <div class="news" id="content">Завантаження...</div>
+
+<div class="container">
+    <header>
+        <h2>💬 Anon Chat (24h TTL)</h2>
+        <!-- Кнопка підключення TON гаманця з'явиться тут -->
+        <div id="ton-connect-button"></div>
+    </header>
+
+    <!-- Стрічка повідомлень -->
+    <div class="chat-box" id="chatBox">
+        <div style="color: #64748b; text-align: center; margin-top: 120px;">
+            Завантаження повідомлень з Supabase...
         </div>
     </div>
 
-    <script>
-        fetch('update-log.txt')
-            .then(response => response.text())
-            .then(data => {
-                document.getElementById('content').textContent = data;
-            })
-            .catch(error => {
-                document.getElementById('content').textContent = 'Помилка завантаження контенту';
-            });
-    </script>
+    <!-- Форма відправки -->
+    <div class="input-group">
+        <textarea id="messageInput" placeholder="Напишіть анонімне повідомлення (зникне через 24 години)..."></textarea>
+        <button class="send-btn" onclick="sendMessage()">Надіслати</button>
+    </div>
+</div>
+
+<script>
+    // Ініціалізація TON Connect UI
+    const tonConnectUI = new TON_Connect_UI.TonConnectUI({
+        manifestUrl: 'https://gansgajder-web.github.io/Para/tonconnect-manifest.json',
+        buttonRootId: 'ton-connect-button'
+    });
+
+    function sendMessage() {
+        const text = document.getElementById('messageInput').value.trim();
+        if (!text) return;
+
+        // Тут у майбутньому ми будемо відправляти дані в Supabase
+        alert("Повідомлення готове до відправки в базу: " + text);
+        document.getElementById('messageInput').value = '';
+    }
+</script>
+
 </body>
 </html>

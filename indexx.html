@@ -72,8 +72,6 @@
             font-weight: bold;
             font-size: 16px;
             flex-shrink: 0;
-            background-size: cover;
-            background-position: center;
             text-transform: uppercase;
         }
         .msg-content {
@@ -156,7 +154,7 @@
 
     <div class="input-container">
         <input type="text" id="message-input" placeholder="Введіть повідомлення... 💬">
-        <button id="send-btn" onclick="sendMessage()">Надіслати</button>
+        <button onclick="sendMessage()">Надіслати</button>
     </div>
 
     <script>
@@ -165,10 +163,6 @@
             tg.expand();
             tg.ready();
         }
-
-        // Отримання імені профілю Telegram
-        const tgUser = tg?.initDataUnsafe?.user;
-        const myTelegramName = tgUser ? (tgUser.first_name + (tgUser.last_name ? ' ' + tgUser.last_name : '')) : 'Михайло';
 
         const SUPABASE_URL = 'https://hsboeykzidkilprcpyey.supabase.co';
         const SUPABASE_KEY = 'sb_publishable_itYl4wIpMrcdLLHyeaEoXw_7ajw1483';
@@ -192,11 +186,6 @@
             }
             loadMessages();
         });
-
-        function formatAddress(addr) {
-            if (!addr) return "";
-            return addr.substring(0, 4) + '...' + addr.substring(addr.length - 4);
-        }
 
         function getRandomColor(str) {
             let hash = 0;
@@ -272,32 +261,23 @@
 
         async function sendMessage() {
             const input = document.getElementById('message-input');
-            const btn = document.getElementById('send-btn');
             const text = input.value.trim();
             if (!text) return;
 
-            btn.disabled = true;
-
-            // Формування підпису: Ім'я Telegram + Скорочена адреса гаманця
-            let authorName = myTelegramName;
-            if (connectedAddress) {
-                authorName = `${myTelegramName} (${formatAddress(connectedAddress)})`;
-            }
-
-            // Збереження в Supabase
+            // Надсилаємо в базу текст і нуль лайків (те, що точно є у вашій таблиці)
             const { error } = await supabaseClient
                 .from('messages')
                 .insert([{
                     text: text,
-                    likes: 0,
-                    author: authorName
+                    likes: 0
                 }]);
 
-            input.value = '';
-            btn.disabled = false;
-
-            // Оновлення стрічки після відправки
-            await loadMessages();
+            if (!error) {
+                input.value = '';
+                loadMessages();
+            } else {
+                console.error("Помилка:", error);
+            }
         }
 
         async function addLike(id, currentLikes) {

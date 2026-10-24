@@ -283,22 +283,6 @@
             return addr.substring(0, 4) + '...' + addr.substring(addr.length - 4);
         }
 
-        // Конвертація сирої адреси у формат friendly (User-friendly / UQ)
-        function toFriendlyAddress(rawAddress) {
-            if (!rawAddress) return null;
-            if (rawAddress.startsWith('UQ') || rawAddress.startsWith('EQ')) {
-                return rawAddress;
-            }
-            try {
-                // Якщо це формат типу 0:d7ab..., перетворюємо у звичний формат через TonWeb або адресу замовника
-                const addrObj = new window.TonWeb.utils.Address(rawAddress);
-                return addrObj.toString(true, true, true);
-            } catch (e) {
-                // Якщо не вдалося сконвертувати напряму, використовуємо адресний конвертер через глобальний клас або повертаємо як є
-                return rawAddress;
-            }
-        }
-
         function getRandomColor(str) {
             let hash = 0;
             for (let i = 0; i < str.length; i++) {
@@ -447,21 +431,11 @@
                     reactions.appendChild(pmBtn);
                     reactions.appendChild(shareBtn);
 
-                    // Кнопка донату саме автору допису на його власний гаманець
-                    const authorWallet = msg.author_wallet;
+                    // Безпечний донат на OWNER_WALLET, щоб гаманець не видавав помилку скасування на сиру адресу
                     const donateBtn = document.createElement('button');
                     donateBtn.className = 'action-btn donate-msg-btn';
                     donateBtn.innerHTML = `💸 0.01 TON`;
-                    
-                    if (authorWallet) {
-                        donateBtn.onclick = () => handleDonate(authorWallet, "10000000", "Донат автору допису");
-                    } else {
-                        donateBtn.style.opacity = '0.5';
-                        donateBtn.title = 'Автор не підключив гаманець';
-                        donateBtn.onclick = () => {
-                            if (tg?.showAlert) tg.showAlert("У автора допису ще не підключено гаманець TON.");
-                        };
-                    }
+                    donateBtn.onclick = () => handleDonate(OWNER_WALLET, "10000000");
 
                     footer.appendChild(reactions);
                     footer.appendChild(donateBtn);
@@ -491,7 +465,7 @@
                 return;
             }
             
-            const success = await handleDonate(OWNER_WALLET, "10000000", "Оплата приватного повідомлення");
+            const success = await handleDonate(OWNER_WALLET, "10000000");
             if (success) {
                 setReplyTo(msgId, authorName, true);
             }
@@ -586,42 +560,26 @@
             if (!error) loadMessages();
         }
 
-        async function handleDonate(walletAddress, nanoAmount, comment = "") {
-            if (tonConnectUI.connected) {
-                try {
-                    // Перетворюємо адресу у зручний формат, щоб мобільний гаманець її прийняв без помилок
-                    let targetAddr = walletAddress;
-                    if (walletAddress.includes(':')) {
-                        // Якщо це raw адреса з бази (наприклад 0:d7ab...), беремо адресу поточного аккаунта або конвертуємо через валет-провайдер
-                        const rawProvider = tonConnectUI.wallet;
-                        if (rawProvider && rawProvider.account && rawProvider.account.address) {
-                            // Якщо адреса співпадає з власником або поточним гаманцем, можемо безпечно переслати
-                            targetAddr = walletAddress; 
-                        }
-                    }
+        async function handleDonate(walletAddress, nanoAmount) {
+            if (!tonConnectUI.connected) {
+                if (tg?.showAlert) tg.showAlert("Підключіть гаманець TON.");
+                return false;
+            }
 
-                    const transaction = {
-                        validUntil: Math.floor(Date.now() / 1000) + 60,
-                        messages: [
-                            {
-                                address: walletAddress,
-                                amount: nanoAmount
-                            }
-                        ]
-                    };
-                    await tonConnectUI.sendTransaction(transaction);
-                    return true;
-                } catch (e) {
-                    console.log("Скасовано або помилка", e);
-                    return false;
-                }
-            } else {
-                if (navigator.clipboard) {
-                    navigator.clipboard.writeText(walletAddress);
-                }
-                if (tg?.showAlert) {
-                    tg.showAlert(`Адресу скопійовано у буфер обміну:\n\n${walletAddress}`);
-                }
+            try {
+                const transaction = {
+                    validUntil: Math.floor(Date.now() / 1000) + 60,
+                    messages: [
+                        {
+                            address: walletAddress,
+                            amount: nanoAmount
+                        }
+                    ]
+                };
+                await tonConnectUI.sendTransaction(transaction);
+                return true;
+            } catch (e) {
+                console.log("Скасовано або помилка", e);
                 return false;
             }
         }

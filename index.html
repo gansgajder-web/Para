@@ -144,12 +144,13 @@
     <div class="header">
         <h1>PapaChat</h1>
         <div class="header-actions">
+            <!-- Кнопка авторизації TON Connect -->
             <div id="ton-connect-btn"></div>
         </div>
     </div>
 
     <div id="chat-container">
-        <!-- Стрічка повідомлень -->
+        <!-- Повідомлення -->
     </div>
 
     <div class="input-container">
@@ -164,29 +165,28 @@
             tg.ready();
         }
 
-        // Беремо ім'я користувача з Telegram
+        // Автоматичне ім'я з Telegram
         const tgUser = tg?.initDataUnsafe?.user;
-        const myTelegramName = tgUser ? (tgUser.first_name + (tgUser.last_name ? ' ' + tgUser.last_name : '')) : null;
+        const telegramName = tgUser ? (tgUser.first_name + (tgUser.last_name ? ' ' + tgUser.last_name : '')) : 'Михайло';
 
         const SUPABASE_URL = 'https://hsboeykzidkilprcpyey.supabase.co';
         const SUPABASE_KEY = 'sb_publishable_itYl4wIpMrcdLLHyeaEoXw_7ajw1483';
         const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-        // Маніфест TON Connect
+        // Ініціалізація TON Connect UI
         const tonConnectUI = new TON_CONNECT_UI.TonConnectUI({
             manifestUrl: 'https://gansgajder-web.github.io/Para/tonconnect-manifest.json',
             buttonRootId: 'ton-connect-btn'
         });
 
-        let currentWalletAddress = null;
+        let connectedAddress = null;
 
         tonConnectUI.onStatusChange(wallet => {
             if (wallet) {
-                currentWalletAddress = wallet.account.address;
+                connectedAddress = wallet.account.address;
             } else {
-                currentWalletAddress = null;
+                connectedAddress = null;
             }
-            loadMessages();
         });
 
         function formatAddress(addr) {
@@ -271,26 +271,29 @@
             const text = input.value.trim();
             if (!text) return;
 
-            // Формуємо ім'я автора: Ім'я з Telegram + Гаманець
-            let finalAuthor = myTelegramName || 'Михайло';
-            if (currentWalletAddress) {
-                finalAuthor += ` (${formatAddress(currentWalletAddress)})`;
+            // Формуємо ім'я автора
+            let authorName = telegramName;
+            if (connectedAddress) {
+                authorName = `${telegramName} (${formatAddress(connectedAddress)})`;
             }
 
-            // Відправляємо в Supabase сумісні колонки (text, likes, author)
+            // Прямий простий запис у Supabase
             const { error } = await supabaseClient
                 .from('messages')
                 .insert([{
                     text: text,
                     likes: 0,
-                    author: finalAuthor
+                    author: authorName
                 }]);
 
             if (!error) {
                 input.value = '';
                 loadMessages();
             } else {
-                console.error("Помилка відправки:", error);
+                // Якщо раптом виникне помилка зі створенням запису, надсилаємо простіший запис
+                await supabaseClient.from('messages').insert([{ text: text, likes: 0 }]);
+                input.value = '';
+                loadMessages();
             }
         }
 

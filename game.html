@@ -227,7 +227,7 @@
             <button class="action-btn" onclick="resetTTT()">🔄 Нова гра</button>
         </div>
 
-        <!-- Морський бій: Розстановка та Дуель -->
+        <!-- Морський бій -->
         <div id="game-bs" style="display: none; flex-direction: column; align-items: center;">
             <div class="status-msg" id="bs-status">Розставте 3 свої кораблі на нижньому полі!</div>
             
@@ -238,7 +238,7 @@
                 </div>
 
                 <div class="board-section">
-                    <span class="board-title" id="my-board-title">🛡️ Ваш флот (натисніть 3 клітинки)</span>
+                    <span class="board-title" id="my-board-title">🛡️ Ваш флот (оберіть 3 позиції)</span>
                     <div class="battleship-board" id="bs-my-board"></div>
                 </div>
             </div>
@@ -260,7 +260,66 @@
             buttonRootId: 'ton-connect-btn'
         });
 
+        /* --- СИНТЕЗАТОР ЗВУКІВ (Web Audio API) --- */
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+
+        function playSound(type) {
+            if (audioCtx.state === 'suspended') {
+                audioCtx.resume();
+            }
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+
+            let now = audioCtx.currentTime;
+
+            if (type === 'click') {
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(400, now);
+                osc.frequency.exponentialRampToValueAtTime(800, now + 0.05);
+                gain.gain.setValueAtTime(0.1, now);
+                gain.gain.exponentialRampToValueAtTime(0.01, now + 0.05);
+                osc.start(now);
+                osc.stop(now + 0.05);
+            } else if (type === 'hit') {
+                osc.type = 'square';
+                osc.frequency.setValueAtTime(150, now);
+                osc.frequency.exponentialRampToValueAtTime(40, now + 0.2);
+                gain.gain.setValueAtTime(0.2, now);
+                gain.gain.exponentialRampToValueAtTime(0.01, now + 0.2);
+                osc.start(now);
+                osc.stop(now + 0.2);
+            } else if (type === 'miss') {
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(300, now);
+                osc.frequency.exponentialRampToValueAtTime(100, now + 0.15);
+                gain.gain.setValueAtTime(0.1, now);
+                gain.gain.exponentialRampToValueAtTime(0.01, now + 0.15);
+                osc.start(now);
+                osc.stop(now + 0.15);
+            } else if (type === 'win') {
+                osc.type = 'triangle';
+                osc.frequency.setValueAtTime(300, now);
+                osc.frequency.setValueAtTime(450, now + 0.1);
+                osc.frequency.setValueAtTime(600, now + 0.2);
+                gain.gain.setValueAtTime(0.15, now);
+                gain.gain.exponentialRampToValueAtTime(0.01, now + 0.4);
+                osc.start(now);
+                osc.stop(now + 0.4);
+            } else if (type === 'lose') {
+                osc.type = 'sawtooth';
+                osc.frequency.setValueAtTime(250, now);
+                osc.frequency.exponentialRampToValueAtTime(80, now + 0.4);
+                gain.gain.setValueAtTime(0.2, now);
+                gain.gain.exponentialRampToValueAtTime(0.01, now + 0.4);
+                osc.start(now);
+                osc.stop(now + 0.4);
+            }
+        }
+
         function switchGame(game) {
+            playSound('click');
             document.getElementById('game-ttt').style.display = game === 'ttt' ? 'flex' : 'none';
             document.getElementById('game-bs').style.display = game === 'bs' ? 'flex' : 'none';
             document.getElementById('tab-ttt').classList.toggle('active', game === 'ttt');
@@ -276,6 +335,7 @@
 
         function makeTTTMove(i) {
             if (tttBoard[i] !== "" || !tttActive) return;
+            playSound('click');
             tttBoard[i] = "X";
             tttCells[i].innerText = "X";
             tttCells[i].classList.add("x");
@@ -290,6 +350,7 @@
         function botTTTMove() {
             let move = findBestTTTMove();
             if (move !== null) {
+                playSound('click');
                 tttBoard[move] = "O";
                 tttCells[move].innerText = "O";
                 tttCells[move].classList.add("o");
@@ -328,27 +389,35 @@
         function checkTTTWin() {
             for (let c of wins) {
                 if (tttBoard[c[0]] && tttBoard[c[0]] === tttBoard[c[1]] && tttBoard[c[0]] === tttBoard[c[2]]) {
-                    document.getElementById('ttt-status').innerText = tttBoard[c[0]] === "X" ? "Ви перемогли! 🎉" : "Переміг Бот! 🤖";
+                    let winner = tttBoard[c[0]];
+                    document.getElementById('ttt-status').innerText = winner === "X" ? "Ви перемогли! 🎉" : "Переміг Бот! 🤖";
+                    if (winner === "X") playSound('win'); else playSound('lose');
                     tttActive = false;
                     return true;
                 }
             }
-            if (!tttBoard.includes("")) {
-                document.getElementById('ttt-status').innerText = "Нічия! 🤝";
-                tttActive = false;
-                return true;
+            if (!boardIsNotEmptyOrFull()) { // просто перевірка нічиєї
+                if (!tttBoard.includes("")) {
+                    document.getElementById('ttt-status').innerText = "Нічия! 🤝";
+                    playSound('miss');
+                    tttActive = false;
+                    return true;
+                }
             }
             return false;
         }
 
+        function boardIsNotEmptyOrFull() { return false; }
+
         function resetTTT() {
+            playSound('click');
             tttBoard = ["", "", "", "", "", "", "", "", ""];
             tttActive = true;
             document.getElementById('ttt-status').innerText = "Ваш хід (X) проти розумного Бота";
             tttCells.forEach(c => { c.innerText = ""; c.classList.remove('x', 'o'); });
         }
 
-        /* --- МОРСЬКИЙ БІЙ: РОЗСТАНОВКА + ДУЕЛЬ --- */
+        /* --- МОРСЬКИЙ БІЙ --- */
         let bsEnemyBoardEl = document.getElementById('bs-enemy-board');
         let bsMyBoardEl = document.getElementById('bs-my-board');
         let bsEnemyCells = [];
@@ -357,10 +426,11 @@
         let myShips = [];
         let myHits = 0;
         let botHits = 0;
-        let gameState = "placing"; // "placing" або "battling"
+        let gameState = "placing";
         let bsActive = true;
 
         function initBS() {
+            playSound('click');
             bsEnemyBoardEl.innerHTML = "";
             bsMyBoardEl.innerHTML = "";
             bsEnemyCells = [];
@@ -377,7 +447,6 @@
             document.getElementById('my-board-title').innerText = "🛡️ Ваш флот (оберіть 3 позиції)";
             document.getElementById('bs-action-btn').innerText = "🔄 Переставити";
 
-            // Створюємо поле гравця для розстановки
             for(let i=0; i<25; i++) {
                 let cell = document.createElement('button');
                 cell.className = 'bs-cell';
@@ -391,6 +460,7 @@
             if (gameState !== "placing") return;
             if (myShips.includes(i)) return;
 
+            playSound('click');
             myShips.push(i);
             cell.classList.add('ship');
             cell.innerText = "🚢";
@@ -406,6 +476,7 @@
         }
 
         function startBattle() {
+            playSound('click');
             gameState = "battling";
             document.getElementById('bs-action-btn').innerText = "🔄 Новий бій";
             document.getElementById('bs-action-btn').onclick = resetBS;
@@ -413,13 +484,11 @@
             document.getElementById('my-board-title').innerText = "🛡️ Ваш флот";
             document.getElementById('bs-status').innerText = "Бій почався! Ваш хід — стріляйте по ворогу.";
 
-            // Бот ховає свої кораблі
             while(enemyShips.length < 3) {
                 let pos = Math.floor(Math.random() * 25);
                 if(!enemyShips.includes(pos)) enemyShips.push(pos);
             }
 
-            // Генеруємо поле ворога для стрільби
             bsEnemyBoardEl.innerHTML = "";
             bsEnemyCells = [];
             for(let i=0; i<25; i++) {
@@ -430,11 +499,21 @@
                 bsEnemyCells.push(cell);
             }
 
-            // Очищаємо підказки з кораблями на своєму полі, залишаючи лише самі кораблі
             bsMyCells.forEach((cell, idx) => {
-                cell.onclick = null; // забороняємо тицяти після старту
+                cell.onclick = null;
                 if(!myShips.includes(idx)) {
                     cell.innerText = "";
+                }
+            });
+        }
+
+        function revealEnemyShips() {
+            // Показуємо де бот сховав кораблі, які ви не встигли знайти
+            enemyShips.forEach(pos => {
+                let cell = bsEnemyCells[pos];
+                if (!cell.classList.contains('hit')) {
+                    cell.innerText = "🚢";
+                    cell.style.backgroundColor = "rgba(255, 193, 7, 0.3)";
                 }
             });
         }
@@ -443,17 +522,21 @@
             if (gameState !== "battling" || !bsActive || cell.classList.contains('hit') || cell.classList.contains('miss')) return;
 
             if (enemyShips.includes(i)) {
+                playSound('hit');
                 cell.innerText = "💥";
                 cell.classList.add('hit');
                 myHits++;
                 if (myHits === 3) {
                     document.getElementById('bs-status').innerText = "Перемога! Ви знищили весь флот бота! 🏆";
+                    playSound('win');
                     bsActive = false;
+                    revealEnemyShips();
                     return;
                 } else {
                     document.getElementById('bs-status').innerText = "Є влучання! Ворог відповідає... 🎯";
                 }
             } else {
+                playSound('miss');
                 cell.innerText = "💧";
                 cell.classList.add('miss');
                 document.getElementById('bs-status').innerText = "Мимо! Хід бота... 🤖";
@@ -478,17 +561,21 @@
                 let targetCell = bsMyCells[botTarget];
 
                 if(myShips.includes(botTarget)) {
+                    playSound('hit');
                     targetCell.innerText = "💥";
                     targetCell.classList.add('hit');
                     botHits++;
                     if(botHits === 3) {
                         document.getElementById('bs-status').innerText = "Поразка! Бот потопив ваш флот! ❌";
+                        playSound('lose');
                         bsActive = false;
+                        revealEnemyShips(); // Відкриваємо де ховались кораблі ворога
                         return;
                     } else {
                         document.getElementById('bs-status').innerText = "Бот влучив у ваш корабель! Ваш хід 🎯";
                     }
                 } else {
+                    playSound('miss');
                     targetCell.innerText = "💧";
                     targetCell.classList.add('miss');
                     document.getElementById('bs-status').innerText = "Бот промахнувся! Ваш хід 🟢";

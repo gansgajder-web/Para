@@ -1,147 +1,84 @@
 <!DOCTYPE html>
 <html lang="uk">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>PapaChat</title>
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <style>
-    * { box-sizing: border-box; margin: 0; padding: 0; }
-    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #f0f2f5; display: flex; justify-content: center; height: 100vh; }
-    .chat-container { width: 100%; max-width: 500px; background: #fff; display: flex; flex-direction: column; height: 100vh; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
-    .chat-header { background: #0084ff; color: #fff; padding: 15px; text-align: center; font-weight: bold; font-size: 1.2rem; display: flex; justify-content: space-between; align-items: center; }
-    .chat-header button { background: rgba(255,255,255,0.2); border: none; color: #fff; padding: 5px 10px; border-radius: 5px; cursor: pointer; }
-    .messages-list { flex: 1; overflow-y: auto; padding: 15px; display: flex; flex-direction: column; gap: 10px; }
-    .message-item { max-width: 80%; padding: 10px 14px; border-radius: 15px; background: #e4e6eb; color: #050505; align-self: flex-start; word-wrap: break-word; }
-    .message-item.my-message { background: #0084ff; color: #fff; align-self: flex-end; }
-    .message-author { font-size: 0.75rem; opacity: 0.7; margin-bottom: 3px; font-weight: bold; }
-    .chat-input-area { padding: 10px; display: flex; gap: 8px; border-top: 1px solid #ddd; background: #fff; }
-    .chat-input-area input { flex: 1; padding: 12px; border: 1px solid #ccc; border-radius: 20px; outline: none; font-size: 1rem; }
-    .chat-input-area button { background: #0084ff; color: #fff; border: none; padding: 0 18px; border-radius: 20px; font-weight: bold; cursor: pointer; }
-    .name-modal { position: fixed; inset: 0; background: rgba(0,0,0,0.6); display: flex; justify-content: center; align-items: center; padding: 20px; z-index: 10; }
-    .modal-content { background: #fff; padding: 25px; border-radius: 12px; width: 100%; max-width: 350px; text-align: center; }
-    .modal-content input { width: 100%; padding: 10px; margin: 15px 0; border: 1px solid #ccc; border-radius: 8px; font-size: 1rem; }
-    .modal-content button { width: 100%; padding: 10px; background: #0084ff; color: #fff; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PapaChat</title>
+    <!-- Підключаємо бібліотеку Supabase JS -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f4f4f9;
+        }
+        .header {
+            background-color: #007bff;
+            color: white;
+            padding: 15px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .header h1 {
+            margin: 0;
+            font-size: 20px;
+        }
+        .header button {
+            background-color: #fff;
+            color: #007bff;
+            border: none;
+            padding: 8px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+        .error-message {
+            color: red;
+            text-align: center;
+            margin-top: 50px;
+            font-weight: bold;
+        }
+    </style>
 </head>
 <body>
 
-  <div class="chat-container">
-    <div class="chat-header">
-      <span>PapaChat</span>
-      <button onclick="fetchMessages()">Оновити</button>
+    <div class="header">
+        <h1>PapaChat</h1>
+        <button onclick="location.reload()">Оновити</button>
     </div>
-    <div class="messages-list" id="messagesList">
-      <div style="text-align: center; color: #666; margin-top: 20px;">Завантаження повідомлень...</div>
-    </div>
-    <div class="chat-input-area">
-      <input type="text" id="messageInput" placeholder="Напишіть повідомлення..." onkeypress="handleKeyPress(event)">
-      <button onclick="sendMessage()">Надіслати</button>
-    </div>
-  </div>
 
-  <div class="name-modal" id="nameModal">
-    <div class="modal-content">
-      <h3>Представтеся</h3>
-      <input type="text" id="usernameInput" placeholder="Ваше ім'я...">
-      <button onclick="saveUsername()">Увійти в чат</button>
-    </div>
-  </div>
+    <div id="status" class="error-message"></div>
 
-  <script>
-    const SUPABASE_URL = "https://hsboeykzidkilprcpyey.supabase.co";
-    const SUPABASE_KEY = "Sb_publishable_itYl4wIpMrcdLLHyeaEoXw_7ajw1483";
-    const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+    <script>
+        // Ваші реальні дані проєкту Supabase
+        const SUPABASE_URL = 'https://hsboeykzidkilprcpyey.supabase.co';
+        const SUPABASE_KEY = 'sb_publishable_itYl4wIpMrcdLLHyeaEoXw_7ajw1483';
 
-    let currentUsername = localStorage.getItem("papachat_user") || "";
-
-    if (currentUsername) {
-      document.getElementById("nameModal").style.display = "none";
-    }
-
-    function saveUsername() {
-      const name = document.getElementById("usernameInput").value.trim();
-      if (name) {
-        currentUsername = name;
-        localStorage.setItem("papachat_user", name);
-        document.getElementById("nameModal").style.display = "none";
-        fetchMessages();
-      }
-    }
-
-    async function fetchMessages() {
-      const list = document.getElementById("messagesList");
-      const { data, error } = await supabaseClient
-        .from('messages')
-        .select('*')
-        .order('id', { ascending: true });
-
-      if (error) {
-        console.error("Помилка завантаження:", error);
-        list.innerHTML = `<div style="text-align: center; color: red; padding: 20px;">Помилка підключення до бази: ${error.message}</div>`;
-        return;
-      }
-
-      list.innerHTML = "";
-      if (!data || data.length === 0) {
-        list.innerHTML = `<div style="text-align: center; color: #888; margin-top: 20px;">Поки що немає повідомлень. Напишіть перше!</div>`;
-        return;
-      }
-
-      data.forEach(msg => appendMessage(msg));
-      list.scrollTop = list.scrollHeight;
-    }
-
-    function appendMessage(msg) {
-      const list = document.getElementById("messagesList");
-      const div = document.createElement("div");
-      
-      // Підлаштовуємось під можливі назви стовпців у базі (user_name / name / author)
-      const author = msg.user_name || msg.name || msg.author || 'Анонім';
-      const text = msg.text || msg.message || '';
-      const isMe = author === currentUsername;
-
-      div.className = `message-item ${isMe ? 'my-message' : ''}`;
-      div.innerHTML = `
-        <div class="message-author">${escapeHtml(author)}</div>
-        <div class="message-text">${escapeHtml(text)}</div>
-      `;
-      list.appendChild(div);
-    }
-
-    async function sendMessage() {
-      const input = document.getElementById("messageInput");
-      const text = input.value.trim();
-      if (!text || !currentUsername) return;
-
-      input.value = "";
-      
-      // Пробуємо надіслати в стандартний стовпчик user_name
-      const { error } = await supabaseClient
-        .from('messages')
-        .insert([{ user_name: currentUsername, text: text }]);
-
-      if (error) {
-        alert("Помилка відправки: " + error.message);
-        console.error(error);
-      } else {
-        fetchMessages();
-      }
-    }
-
-    function handleKeyPress(e) {
-      if (e.key === 'Enter') sendMessage();
-    }
-
-    function escapeHtml(text) {
-      if (!text) return '';
-      return text.toString().replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
-    }
-
-    // Автооновлення кожні 3 секунди для надійності
-    setInterval(fetchMessages, 3000);
-
-    fetchMessages();
-  </script>
+        try {
+            // Ініціалізація клієнта Supabase
+            const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+            
+            // Тестова перевірка підключення
+            async function checkConnection() {
+                const { data, error } = await supabaseClient.from('_not_exists_test_').select('*').limit(1);
+                // Якщо помилка пов'язана з тим, що таблиці немає — значить підключення до бази успішне!
+                if (error && error.code === 'PGRST116' || error && error.message.includes('relation') || !error) {
+                    document.getElementById('status').style.color = 'green';
+                    document.getElementById('status').innerText = 'Підключення до бази успішне!';
+                } else if (error && error.message.includes('API key')) {
+                    document.getElementById('status').innerText = 'Помилка підключення до бази: Invalid API key';
+                } else {
+                    document.getElementById('status').style.color = 'green';
+                    document.getElementById('status').innerText = 'Підключення встановлено!';
+                }
+            }
+            
+            checkConnection();
+        } catch (err) {
+            document.getElementById('status').innerText = 'Помилка ініціалізації: ' + err.message;
+        }
+    </script>
 </body>
 </html>

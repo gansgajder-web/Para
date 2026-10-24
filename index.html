@@ -8,8 +8,6 @@
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <!-- Supabase JS -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <!-- TON Connect UI SDK -->
-    <script src="https://unpkg.com/@tonconnect/ui@latest/dist/tonconnect-ui.min.js"></script>
 
     <style>
         body {
@@ -25,7 +23,7 @@
         .header {
             background-color: #1f1f1f;
             color: #ffffff;
-            padding: 10px 15px;
+            padding: 12px 15px;
             display: flex;
             justify-content: space-between;
             align-items: center;
@@ -35,14 +33,23 @@
             margin: 0;
             font-size: 18px;
         }
-        .header-actions {
+        .header-buttons {
             display: flex;
-            align-items: center;
             gap: 8px;
         }
-        #ton-connect-button {
-            transform: scale(0.85);
-            transform-origin: right center;
+        .header button {
+            background-color: #333;
+            color: #ffffff;
+            border: 1px solid #555;
+            padding: 6px 10px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 12px;
+            font-weight: bold;
+        }
+        .fund-btn {
+            background-color: #0088cc !important;
+            border: none !important;
         }
         #chat-container {
             flex: 1;
@@ -72,6 +79,8 @@
             font-weight: bold;
             font-size: 15px;
             flex-shrink: 0;
+            background-size: cover;
+            background-position: center;
             text-transform: uppercase;
         }
         .msg-content {
@@ -143,14 +152,14 @@
 
     <div class="header">
         <h1>PapaChat</h1>
-        <div class="header-actions">
-            <!-- Кнопка підключення гаманця TON Connect -->
-            <div id="ton-connect-button"></div>
+        <div class="header-buttons">
+            <button class="fund-btn" onclick="openWalt('UQDXq1iAqu88tVRG62_k03kAXELu_1gzRBMye-VZoFRIRtWw')">💎 Чат-фонд</button>
+            <button onclick="location.reload()">Оновити</button>
         </div>
     </div>
 
     <div id="chat-container">
-        <!-- Повідомлення -->
+        <!-- Сообщения -->
     </div>
 
     <div class="input-container">
@@ -165,33 +174,14 @@
             tg.ready();
         }
 
+        // Данные пользователя из Telegram SDK
+        const tgUser = tg?.initDataUnsafe?.user;
+        const myName = tgUser ? (tgUser.first_name + (tgUser.last_name ? ' ' + tgUser.last_name : '')) : 'Користувач';
+        const myPhoto = tgUser?.photo_url || null;
+
         const SUPABASE_URL = 'https://hsboeykzidkilprcpyey.supabase.co';
         const SUPABASE_KEY = 'sb_publishable_itYl4wIpMrcdLLHyeaEoXw_7ajw1483';
         const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-
-        // Ініціалізація TON Connect UI
-        const tonConnectUI = new TON_CONNECT_UI.TonConnectUI({
-            manifestUrl: 'https://gansgajder-web.github.io/manifest.json',
-            buttonRootId: 'ton-connect-button'
-        });
-
-        let userWalletAddress = null;
-
-        // Слідкуємо за підключенням гаманця користувача
-        tonConnectUI.onStatusChange(wallet => {
-            if (wallet) {
-                userWalletAddress = wallet.account.address;
-                console.log("Гаманець підключено:", userWalletAddress);
-            } else {
-                userWalletAddress = null;
-            }
-            loadMessages();
-        });
-
-        function formatAddress(addr) {
-            if (!addr) return "Анонім";
-            return addr.substring(0, 4) + '...' + addr.substring(addr.length - 4);
-        }
 
         function getRandomColor(str) {
             let hash = 0;
@@ -217,21 +207,25 @@
                     const div = document.createElement('div');
                     div.className = 'message';
 
-                    // Якщо у повідомлення є збережена адреса гаманця автора — показуємо її скорочено
-                    const authorWallet = msg.wallet || msg.author;
-                    const displayName = authorWallet && authorWallet.length > 10 ? formatAddress(authorWallet) : (msg.author || 'Гість');
+                    const authorName = msg.author || 'Учасник';
+                    const authorPhoto = msg.photo_url || null;
 
                     const avatar = document.createElement('div');
                     avatar.className = 'avatar';
-                    avatar.style.backgroundColor = getRandomColor(displayName);
-                    avatar.innerText = displayName[0].toUpperCase();
+                    
+                    if (authorPhoto) {
+                        avatar.style.backgroundImage = `url('${authorPhoto}')`;
+                    } else {
+                        avatar.style.backgroundColor = getRandomColor(authorName);
+                        avatar.innerText = authorName[0].toUpperCase();
+                    }
 
                     const content = document.createElement('div');
                     content.className = 'msg-content';
 
                     const author = document.createElement('div');
                     author.className = 'username';
-                    author.innerText = displayName;
+                    author.innerText = authorName;
 
                     const text = document.createElement('div');
                     text.className = 'message-text';
@@ -246,12 +240,10 @@
                     likeBtn.innerHTML = `❤️ <span>${likesCount}</span>`;
                     likeBtn.onclick = () => addLike(msg.id, likesCount);
 
-                    // Кнопка підтримки конкретного автора за його гаманцем
-                    const targetWallet = msg.wallet || "UQDXq1iAqu88tVRG62_k03kAXELu_1gzRBMye-VZoFRIRtWw";
                     const helpBtn = document.createElement('button');
                     helpBtn.className = 'action-btn donate-msg-btn';
                     helpBtn.innerHTML = `💸 Підтримати`;
-                    helpBtn.onclick = () => sendTon(targetWallet);
+                    helpBtn.onclick = () => openWalt("UQDXq1iAqu88tVRG62_k03kAXELu_1gzRBMye-VZoFRIRtWw");
 
                     footer.appendChild(likeBtn);
                     footer.appendChild(helpBtn);
@@ -273,29 +265,21 @@
             const text = input.value.trim();
             if (!text) return;
 
-            // Якщо гаманець не підключено, попереджаємо або підписуємо як гість
-            if (!userWalletAddress) {
-                if (tg?.showAlert) {
-                    tg.showAlert("Будь ласка, підключіть свій TON-гаманець у верхньому правому кутку перед відправкою повідомлення!");
-                } else {
-                    alert("Підключіть свій TON-гаманець праворуч зверху!");
-                }
-                return;
-            }
-
             const { error } = await supabaseClient
                 .from('messages')
                 .insert([{
                     text: text,
                     likes: 0,
-                    author: formatAddress(userWalletAddress),
-                    wallet: userWalletAddress
+                    author: myName,
+                    photo_url: myPhoto
                 }]);
 
-            if (!error) {
-                input.value = '';
-                loadMessages();
+            if (error) {
+                await supabaseClient.from('messages').insert([{ text: text, likes: 0 }]);
             }
+            
+            input.value = '';
+            loadMessages();
         }
 
         async function addLike(id, currentLikes) {
@@ -307,30 +291,28 @@
             if (!error) loadMessages();
         }
 
-        // Переказ кошти на гаманець через TON Connect або копіювання
-        async function sendTon(recipientWallet) {
-            if (tonConnectUI.connected) {
-                try {
-                    const transaction = {
-                        validUntil: Math.floor(Date.now() / 1000) + 60,
-                        messages: [
-                            {
-                                address: recipientWallet,
-                                amount: "100000000" // 0.1 TON (можете змінити суму в наноторах)
+        function openWalt(walletAddress) {
+            // Копируем адрес
+            if (navigator.clipboard) {
+                navigator.clipboard.writeText(walletAddress);
+            }
+            
+            // Вызываем системное диалоговое окно Telegram
+            if (tg?.showConfirm) {
+                tg.showConfirm(
+                    `Адресу TON скопійовано у буфер обміну:\n\n${walletAddress}\n\nВідкрити Walt (@wallet) для переказу?`,
+                    function(confirmed) {
+                        if (confirmed) {
+                            if (tg?.openTelegramLink) {
+                                tg.openTelegramLink('https://t.me/wallet');
+                            } else {
+                                window.open('https://t.me/wallet', '_blank');
                             }
-                        ]
-                    };
-                    await tonConnectUI.sendTransaction(transaction);
-                } catch (e) {
-                    console.log("Помилка транзакції або скасовано", e);
-                }
+                        }
+                    }
+                );
             } else {
-                if (navigator.clipboard) {
-                    navigator.clipboard.writeText(recipientWallet);
-                }
-                if (tg?.showAlert) {
-                    tg.showAlert(`Адресу скопійовано:\n${recipientWallet}`);
-                }
+                alert(`Адресу скопійовано: ${walletAddress}`);
             }
         }
 

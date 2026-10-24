@@ -431,11 +431,21 @@
                     reactions.appendChild(pmBtn);
                     reactions.appendChild(shareBtn);
 
-                    // Безпечний донат на OWNER_WALLET
+                    // Донат безпосередньо на гаманець автора допису
+                    const authorWallet = msg.author_wallet;
                     const donateBtn = document.createElement('button');
                     donateBtn.className = 'action-btn donate-msg-btn';
                     donateBtn.innerHTML = `💸 0.01 TON`;
-                    donateBtn.onclick = () => handleDonate(OWNER_WALLET, "10000000");
+                    
+                    if (authorWallet) {
+                        donateBtn.onclick = () => handleDonate(authorWallet, "10000000");
+                    } else {
+                        donateBtn.style.opacity = '0.5';
+                        donateBtn.title = 'Автор не підключив гаманець';
+                        donateBtn.onclick = () => {
+                            if (tg?.showAlert) tg.showAlert("У автора цього допису не підключено гаманець.");
+                        };
+                    }
 
                     footer.appendChild(reactions);
                     footer.appendChild(donateBtn);
@@ -568,7 +578,6 @@
 
             try {
                 const transaction = {
-                    // Збільшено час очікування до 180 секунд (3 хвилини)
                     validUntil: Math.floor(Date.now() / 1000) + 180,
                     messages: [
                         {
@@ -578,6 +587,7 @@
                     ]
                 };
                 await tonConnectUI.sendTransaction(transaction);
+                if (tg?.showAlert) tg.showAlert("Донат успішно відправлено автору! 💛💙");
                 return true;
             } catch (e) {
                 console.log("Скасовано або помилка", e);

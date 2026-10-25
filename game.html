@@ -6,6 +6,8 @@
     <title>Ігрова Зала — ЖЖ</title>
     <!-- Telegram WebApp SDK -->
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <!-- TON Connect UI SDK -->
+    <script src="https://unpkg.com/@tonconnect/ui@latest/dist/tonconnect-ui.min.js"></script>
     <style>
         body {
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
@@ -30,6 +32,15 @@
             margin: 0;
             font-size: 18px;
             color: #ffb74d;
+        }
+        .header-actions {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        #ton-connect-btn {
+            transform: scale(0.8);
+            transform-origin: right center;
         }
         /* Перемикач ігор */
         .game-switcher {
@@ -189,7 +200,9 @@
 
     <div class="header">
         <h1>🕹️ Ігрова Зала</h1>
-        <div style="font-size: 11px; color: #888;">ЖЖ клуб</div>
+        <div class="header-actions">
+            <div id="ton-connect-btn"></div>
+        </div>
     </div>
 
     <!-- Перемикач ігор -->
@@ -216,23 +229,19 @@
         <button class="btn" onclick="resetTTT()">Нова гра</button>
     </div>
 
-    <!-- Гра 2: Морський бій (розстановка та бій) -->
+    <!-- Гра 2: Морський бій -->
     <div id="game-1" class="game-card">
         <div class="status-text" id="bs-status">Розставте свої кораблі (виберіть 5 клітинок)</div>
         <div class="battleship-container">
             <!-- Вороже поле -->
             <div class="fleet-box" id="enemy-box" style="display:none;">
                 <div class="fleet-title">🎯 Ворожа акваторія</div>
-                <div class="bs-board" id="enemy-board">
-                    <!-- Генерується JS -->
-                </div>
+                <div class="bs-board" id="enemy-board"></div>
             </div>
             <!-- Поле гравця для розстановки -->
             <div class="fleet-box">
                 <div class="fleet-title" id="player-box-title">⚓ Ваша акваторія (натисніть, щоб сховати корабель)</div>
-                <div class="bs-board" id="player-board">
-                    <!-- Генерується JS -->
-                </div>
+                <div class="bs-board" id="player-board"></div>
             </div>
         </div>
         <button class="btn" id="bs-action-btn" onclick="startBattle()" style="display:none; margin-top: 8px;">Розпочати бій!</button>
@@ -257,7 +266,15 @@
         const tg = window.Telegram?.WebApp;
         if (tg) { tg.expand(); tg.ready(); }
 
-        // Звуковий синтезатор
+        const tonConnectUI = new TON_CONNECT_UI.TonConnectUI({
+            manifestUrl: 'https://gansgajder-web.github.io/Para/tonconnect-manifest.json',
+            buttonRootId: 'ton-connect-btn',
+            actionsConfiguration: {
+                twaReturnUrl: 'https://t.me/walt'
+            }
+        });
+
+        // Аудіо-синтезатор
         const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
         function playSound(type) {
             if (!audioCtx) return;
@@ -350,10 +367,10 @@
             updateTTT();
         }
 
-        // Морський бій (ініціалізація полів)
+        // Морський бій
         let playerShips = [];
         let enemyShips = [];
-        let gameStage = 'setup'; // 'setup' або 'battle'
+        let gameStage = 'setup';
         let playerHits = 0, enemyHits = 0;
 
         function initBoards() {
@@ -403,7 +420,6 @@
             document.getElementById('enemy-box').style.display = 'block';
             document.getElementById('player-box-title').innerText = '⚓ Ваша флотилія';
             
-            // Генерація ворожих кораблів
             enemyShips = [];
             while(enemyShips.length < 5) {
                 let pos = Math.floor(Math.random() * 100);
@@ -480,7 +496,6 @@
             initBoards();
         }
 
-        // Запуск ініціалізації полів при завантаженні
         initBoards();
 
         // Камінь, ножиці, папір

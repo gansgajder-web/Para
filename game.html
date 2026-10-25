@@ -34,25 +34,22 @@
         /* Перемикач ігор */
         .game-switcher {
             display: flex;
-            gap: 8px;
+            gap: 10px;
             width: 100%;
             max-width: 400px;
             margin-bottom: 20px;
-            overflow-x: auto;
-            padding-bottom: 5px;
         }
         .switch-btn {
             flex: 1;
             background: #1e1e1e;
             border: 1px solid #333;
             color: #aaa;
-            padding: 10px;
+            padding: 12px;
             border-radius: 8px;
             cursor: pointer;
-            font-size: 12px;
+            font-size: 13px;
             font-weight: bold;
             text-align: center;
-            white-space: nowrap;
             transition: all 0.2s;
         }
         .switch-btn.active {
@@ -108,7 +105,7 @@
         .cell.x { color: #ff5252; }
         .cell.o { color: #64b5f6; }
         
-        /* Загальні кнопки */
+        /* Кнопки */
         .btn {
             background-color: #007bff;
             color: white;
@@ -122,31 +119,6 @@
         }
         .btn:hover {
             background-color: #0056b3;
-        }
-        /* Камінь, ножиці, папір */
-        .rps-choices {
-            display: flex;
-            justify-content: center;
-            gap: 12px;
-            margin: 20px 0;
-        }
-        .rps-btn {
-            background: #252830;
-            border: 1px solid #444;
-            font-size: 30px;
-            padding: 15px;
-            border-radius: 12px;
-            cursor: pointer;
-            transition: transform 0.1s, background 0.2s;
-        }
-        .rps-btn:hover {
-            background: #333946;
-            transform: scale(1.05);
-        }
-        .score-board {
-            font-size: 13px;
-            color: #888;
-            margin-bottom: 15px;
         }
         /* Повернення */
         .back-link {
@@ -166,17 +138,16 @@
 
     <div class="header">
         <h1>🕹️ Ігрова Зала</h1>
-        <div id="user-wallet-label" style="font-size: 11px; color: #888;">ЖЖ клуб</div>
+        <div style="font-size: 11px; color: #888;">ЖЖ клуб</div>
     </div>
 
-    <!-- Перемикач ігор -->
+    <!-- Перемикач на 2 оригінальні гри -->
     <div class="game-switcher">
-        <div class="switch-btn active" onclick="switchGame(0)">❌ Хрестики</div>
+        <div class="switch-btn active" onclick="switchGame(0)">❌ Хрестики-нулики</div>
         <div class="switch-btn" onclick="switchGame(1)">🚢 Морський бій</div>
-        <div class="switch-btn" onclick="switchGame(2)">✂️ Камінь-Ножиці</div>
     </div>
 
-    <!-- Гра 1: Хрестики-нулики (Чесний складний бот) -->
+    <!-- Гра 1: Хрестики-нулики -->
     <div id="game-0" class="game-card active">
         <div class="status-text" id="ttt-status">Ваш хід (X)</div>
         <div class="board" id="ttt-board">
@@ -193,7 +164,7 @@
         <button class="btn" onclick="resetTTT()">Нова гра</button>
     </div>
 
-    <!-- Гра 2: Морський бій (Оригінальна версія) -->
+    <!-- Гра 2: Морський бій (Оригінальний) -->
     <div id="game-1" class="game-card">
         <div class="status-text">🚢 Морський бій (Дуель)</div>
         <p style="font-size: 13px; color: #b0bec5; line-height: 1.4;">Суперник сховав свої кораблі у квадраті 3х3. Знайдіть їх пострілом!</p>
@@ -210,18 +181,6 @@
         </div>
         <div class="status-text" id="bs-status" style="margin-top: 10px; font-size: 12px;">Зробіть постріл!</div>
         <button class="btn" onclick="resetBattleship()">Скинути поле</button>
-    </div>
-
-    <!-- Гра 3: Камінь, ножиці, папір -->
-    <div id="game-2" class="game-card">
-        <div class="status-text">✂️ Камінь, ножиці, папір</div>
-        <div class="score-board">Рахунок: Ви <span id="player-score">0</span> : <span id="bot-score">0</span> Бот</div>
-        <div id="rps-result" style="font-size: 14px; margin-bottom: 10px; color: #fff;">Оберіть свій варіант:</div>
-        <div class="rps-choices">
-            <button class="rps-btn" onclick="playRPS('rock')">✊</button>
-            <button class="rps-btn" onclick="playRPS('paper')">✋</button>
-            <button class="rps-btn" onclick="playRPS('scissors')">✌️</button>
-        </div>
     </div>
 
     <a href="index.html" class="back-link">← Повернутися до Живого журналу</a>
@@ -242,7 +201,7 @@
             });
         }
 
-        // --- ХРЕСТИКИ-НУЛИКИ (Чесний та розумний бот без піддавків) ---
+        // --- ХРЕСТИКИ-НУЛИКИ ---
         let tttBoard = ['', '', '', '', '', '', '', '', ''];
         let tttGameActive = true;
         let tttPlayerTurn = true;
@@ -270,9 +229,7 @@
             setTimeout(botMove, 500);
         }
 
-        // Алгоритм мінімакс / розумний хід бота, щоб грати чесно і не піддаватись
         function findBestMove() {
-            // 1. Перевірити, чи може бот виграти за наступний хід
             for (let i = 0; i < 9; i++) {
                 if (tttBoard[i] === '') {
                     tttBoard[i] = 'O';
@@ -283,7 +240,6 @@
                     tttBoard[i] = '';
                 }
             }
-            // 2. Перевірити, чи треба заблокувати виграш гравця
             for (let i = 0; i < 9; i++) {
                 if (tttBoard[i] === '') {
                     tttBoard[i] = 'X';
@@ -294,10 +250,7 @@
                     tttBoard[i] = '';
                 }
             }
-            // 3. Зайняти центр, якщо вільний
             if (tttBoard[4] === '') return 4;
-
-            // 4. Будь-який вільний хід
             let emptyCells = tttBoard.map((val, idx) => val === '' ? idx : null).filter(val => val !== null);
             return emptyCells.length > 0 ? emptyCells[Math.floor(Math.random() * emptyCells.length)] : -1;
         }
@@ -350,7 +303,7 @@
             updateTTTBoard();
         }
 
-        // --- МОРСЬКИЙ БІЙ (Оригінальний) ---
+        // --- МОРСЬКИЙ БІЙ ---
         let shipPosition = Math.floor(Math.random() * 9);
         let bsAttempts = 3;
 
@@ -385,34 +338,6 @@
                 cell.style.background = '#252830';
             }
             document.getElementById('bs-status').innerText = 'Зробіть постріл!';
-        }
-
-        // --- КАМІНЬ, НОЖИЦІ, ПАПІР ---
-        let pScore = 0, bScore = 0;
-        const rpsEmojis = { rock: '✊', paper: '✋', scissors: '✌️' };
-
-        function playRPS(playerChoice) {
-            const choices = ['rock', 'paper', 'scissors'];
-            const botChoice = choices[Math.floor(Math.random() * 3)];
-            
-            let resultText = '';
-            if (playerChoice === botChoice) {
-                resultText = `Нічия! Обидва обрали ${rpsEmojis[playerChoice]}`;
-            } else if (
-                (playerChoice === 'rock' && botChoice === 'scissors') ||
-                (playerChoice === 'paper' && botChoice === 'rock') ||
-                (playerChoice === 'scissors' && botChoice === 'paper')
-            ) {
-                pScore++;
-                resultText = `Ви виграли! ${rpsEmojis[playerChoice]} б'є ${rpsEmojis[botChoice]}`;
-            } else {
-                bScore++;
-                resultText = `Бот виграв! ${rpsEmojis[botChoice]} б'є ${rpsEmojis[playerChoice]}`;
-            }
-
-            document.getElementById('player-score').innerText = pScore;
-            document.getElementById('bot-score').innerText = bScore;
-            document.getElementById('rps-result').innerText = resultText;
         }
     </script>
 </body>

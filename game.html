@@ -91,7 +91,7 @@
             min-height: 18px;
         }
         
-        /* Хрестики-нулики — ідеальна сітка 3х3 */
+        /* Хрестики-нулики — сітка 3х3 */
         .ttt-board {
             display: grid;
             grid-template-columns: repeat(3, 1fr);
@@ -212,7 +212,7 @@
         <div class="switch-btn" onclick="switchGame(2)">✂️ Камінь-Ножиці</div>
     </div>
 
-    <!-- Гра 1: Хрестики-нулики -->
+    <!-- Гра 1: Хрестики-нулики (Розумний бот) -->
     <div id="game-0" class="game-card active">
         <div class="status-text" id="ttt-status">Ваш хід (X)</div>
         <div class="ttt-board" id="ttt-board">
@@ -308,7 +308,7 @@
                 gain.gain.setValueAtTime(0.15, audioCtx.currentTime);
                 gain.gain.linearRampToValueAtTime(0.01, audioCtx.currentTime + 0.12);
                 osc.start();
-                osc.stop(audioCtx.currentTime + 0.12);
+                osc.stop(audioCtx.currentTime + 0.15);
             }
         }
 
@@ -319,7 +319,7 @@
             btns.forEach((b, i) => b.classList.toggle('active', i === index));
         }
 
-        // Хрестики-нулики
+        // --- ХРЕСТИКИ-НУЛИКИ (НЕПЕРЕМОЖНИЙ АЛГОРИТМ) ---
         let tttBoard = ['', '', '', '', '', '', '', '', ''];
         let tttActive = true, tttTurn = true;
 
@@ -328,23 +328,82 @@
             tttBoard[i] = 'X';
             playSound('shot');
             updateTTT();
-            if (checkWin('X')) { document.getElementById('ttt-status').innerText = 'Ви перемогли! 🎉'; tttActive = false; return; }
-            if (tttBoard.every(c => c !== '')) { document.getElementById('ttt-status').innerText = 'Нічия! 🤝'; tttActive = false; return; }
+
+            if (checkWin('X')) { 
+                document.getElementById('ttt-status').innerText = 'Ви перемогли! 🎉'; 
+                tttActive = false; 
+                return; 
+            }
+            if (tttBoard.every(c => c !== '')) { 
+                document.getElementById('ttt-status').innerText = 'Нічия! 🤝'; 
+                tttActive = false; 
+                return; 
+            }
+
             tttTurn = false;
             document.getElementById('ttt-status').innerText = 'Хід бота... 🤖';
-            setTimeout(botTTT, 500);
+            setTimeout(botTTT, 400);
+        }
+
+        function getSmartBotMove() {
+            const winCombos = [
+                [0,1,2],[3,4,5],[6,7,8],
+                [0,3,6],[1,4,7],[2,5,8],
+                [0,4,8],[2,4,6]
+            ];
+
+            // 1. Спроба перемогти бота (якщо 2 нулики в ряд і є 3-я вільна)
+            for (let combo of winCombos) {
+                let oCount = combo.filter(idx => tttBoard[idx] === 'O').length;
+                let emptyCount = combo.filter(idx => tttBoard[idx] === '').length;
+                if (oCount === 2 && emptyCount === 1) {
+                    return combo.find(idx => tttBoard[idx] === '');
+                }
+            }
+
+            // 2. БЛОКУВАННЯ ГРАВЦЯ (якщо у гравця 2 хрестики в ряд — ОБОВ'ЯЗКОВО БЛОКУЄМО!)
+            for (let combo of winCombos) {
+                let xCount = combo.filter(idx => tttBoard[idx] === 'X').length;
+                let emptyCount = combo.filter(idx => tttBoard[idx] === '').length;
+                if (xCount === 2 && emptyCount === 1) {
+                    return combo.find(idx => tttBoard[idx] === '');
+                }
+            }
+
+            // 3. Заняти центр, якщо вільний
+            if (tttBoard[4] === '') return 4;
+
+            // 4. Заняти кути
+            const corners = [0, 2, 6, 8].filter(idx => tttBoard[idx] === '');
+            if (corners.length > 0) {
+                return corners[Math.floor(Math.random() * corners.length)];
+            }
+
+            // 5. Будь-яка вільна клітинка
+            let empty = tttBoard.map((v, idx) => v === '' ? idx : null).filter(v => v !== null);
+            return empty[Math.floor(Math.random() * empty.length)];
         }
 
         function botTTT() {
             if (!tttActive) return;
-            let empty = tttBoard.map((v, idx) => v === '' ? idx : null).filter(v => v !== null);
-            if (empty.length > 0) {
-                let r = empty[Math.floor(Math.random() * empty.length)];
-                tttBoard[r] = 'O';
+            let moveIdx = getSmartBotMove();
+            if (moveIdx !== undefined && moveIdx !== null) {
+                tttBoard[moveIdx] = 'O';
                 playSound('hit');
             }
             updateTTT();
-            if (checkWin('O')) { document.getElementById('ttt-status').innerText = 'Переміг Бот! 🤖'; tttActive = false; return; }
+
+            if (checkWin('O')) { 
+                document.getElementById('ttt-status').innerText = 'Переміг Бот! 🤖'; 
+                tttActive = false; 
+                return; 
+            }
+            if (tttBoard.every(c => c !== '')) { 
+                document.getElementById('ttt-status').innerText = 'Нічия! 🤝'; 
+                tttActive = false; 
+                return; 
+            }
+
             tttTurn = true;
             document.getElementById('ttt-status').innerText = 'Ваш хід (X)';
         }
@@ -356,18 +415,21 @@
                 cells[i].className = 'ttt-cell ' + (tttBoard[i] === 'X' ? 'x' : tttBoard[i] === 'O' ? 'o' : '');
             }
         }
+
         function checkWin(p) {
             const w = [[0,1,2],[3,4,5],[6,7,8],[0,3,6],[1,4,7],[2,5,8],[0,4,8],[2,4,6]];
             return w.some(c => c.every(i => tttBoard[i] === p));
         }
+
         function resetTTT() {
             tttBoard = ['', '', '', '', '', '', '', '', ''];
-            tttActive = true; tttTurn = true;
+            tttActive = true; 
+            tttTurn = true;
             document.getElementById('ttt-status').innerText = 'Ваш хід (X)';
             updateTTT();
         }
 
-        // Морський бій
+        // --- МОРСЬКИЙ БІЙ ---
         let playerShips = [];
         let enemyShips = [];
         let gameStage = 'setup';
@@ -498,7 +560,7 @@
 
         initBoards();
 
-        // Камінь, ножиці, папір
+        // --- КАМІНЬ, НОЖИЦІ, ПАПІР ---
         let pS = 0, bS = 0;
         const emojis = { rock: '✊', paper: '✋', scissors: '✌️' };
         function playRPS(choice) {

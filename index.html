@@ -288,7 +288,6 @@
     <script>
         const OWNER_WALLET = "UQDXq1iAqu88tVRG62_k03kAXELu_1gzRBMye-VZoFRIRtWw";
 
-        // Словники перекладів інтерфейсу
         const translations = {
             uk: {
                 placeholder: "Напишіть вірш або думку... ✍️",
@@ -384,6 +383,7 @@
         let connectedAddress = null;
         let replyingToId = null;
         let isPrivateMode = false;
+        let targetRecipientWallet = null; // Гаманець того, кому пишемо приватне
 
         tonConnectUI.onStatusChange(wallet => {
             if (wallet) {
@@ -433,19 +433,13 @@
             container.innerHTML = '';
             if (data) {
                 data.forEach(msg => {
+                    // Фільтрація приватних повідомлень через чіткий recipient_wallet або автора/власника
                     if (msg.is_private) {
                         const isSender = connectedAddress && msg.author_wallet === connectedAddress;
+                        const isRecipient = connectedAddress && msg.recipient_wallet === connectedAddress;
                         const isOwner = connectedAddress === OWNER_WALLET;
-                        
-                        let isRecipient = false;
-                        if (msg.reply_to && messagesMap[msg.reply_to]) {
-                            const parentMsg = messagesMap[msg.reply_to];
-                            if (connectedAddress && parentMsg.author_wallet === connectedAddress) {
-                                isRecipient = true;
-                            }
-                        }
 
-                        if (!isSender && !isOwner && !isRecipient) {
+                        if (!isSender && !isRecipient && !isOwner) {
                             return;
                         }
                     }
@@ -544,12 +538,12 @@
                     const replyBtn = document.createElement('button');
                     replyBtn.className = 'action-btn';
                     replyBtn.innerHTML = t.reply;
-                    replyBtn.onclick = () => setReplyTo(msg.id, authorName, false);
+                    replyBtn.onclick = () => setReplyTo(msg.id, authorName, false, null);
 
                     const pmBtn = document.createElement('button');
                     pmBtn.className = 'action-btn pm-btn';
                     pmBtn.innerHTML = t.privateBtn;
-                    pmBtn.onclick = () => startPrivateMessage(msg.id, authorName);
+                    pmBtn.onclick = () => startPrivateMessage(msg.id, authorName, msg.author_wallet);
 
                     const shareBtn = document.createElement('button');
                     shareBtn.className = 'action-btn';
@@ -596,9 +590,10 @@
             }
         }
 
-        function setReplyTo(id, authorName, privateFlag = false) {
+        function setReplyTo(id, authorName, privateFlag = false, recipientWallet = null) {
             replyingToId = id;
             isPrivateMode = privateFlag;
+            targetRecipientWallet = recipientWallet;
             const t = translations[currentLang];
             document.getElementById('reply-label').innerText = privateFlag ? t.privateReplyLabel : t.replyLabelRef;
             document.getElementById('reply-to-author').innerText = authorName;
@@ -606,7 +601,7 @@
             document.getElementById('message-input').focus();
         }
 
-        async function startPrivateMessage(msgId, authorName) {
+        async function startPrivateMessage(msgId, authorName, authorWallet) {
             const t = translations[currentLang];
             if (!tonConnectUI.connected) {
                 if (tg?.showAlert) {
@@ -619,13 +614,14 @@
             
             const success = await handleDonate(OWNER_WALLET, "10000000");
             if (success) {
-                setReplyTo(msgId, authorName, true);
+                setReplyTo(msgId, authorName, true, authorWallet);
             }
         }
 
         function cancelReply() {
             replyingToId = null;
             isPrivateMode = false;
+            targetRecipientWallet = null;
             document.getElementById('reply-preview-container').classList.remove('active');
         }
 
@@ -684,7 +680,8 @@
                 dislikes: 0,
                 author: authorName,
                 author_wallet: connectedAddress || null,
-                is_private: isPrivateMode
+                is_private: isPrivateMode,
+                recipient_wallet: isPrivateMode ? targetRecipientWallet : null
             };
 
             if (replyingToId) {

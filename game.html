@@ -80,22 +80,23 @@
             min-height: 18px;
         }
         
-        /* Хрестики-нулики сітка 3х3 */
+        /* Хрестики-нулики — ідеальна сітка 3х3 */
         .ttt-board {
             display: grid;
             grid-template-columns: repeat(3, 1fr);
-            gap: 6px;
-            margin: 0 auto 10px auto;
-            max-width: 240px;
+            gap: 8px;
+            width: 240px;
+            margin: 0 auto 15px auto;
         }
         .ttt-cell {
             background: #252830;
-            aspect-ratio: 1;
-            border-radius: 6px;
+            width: 72px;
+            height: 72px;
+            border-radius: 8px;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 24px;
+            font-size: 32px;
             font-weight: bold;
             cursor: pointer;
             border: 1px solid #333;
@@ -137,9 +138,6 @@
             font-size: 10px;
             cursor: pointer;
             border: 1px solid #222;
-        }
-        .bs-cell:hover {
-            background: #333946;
         }
 
         /* Загальні кнопки */
@@ -197,7 +195,7 @@
     <!-- Перемикач ігор -->
     <div class="game-switcher">
         <div class="switch-btn active" onclick="switchGame(0)">❌ Хрестики</div>
-        <div class="switch-btn" onclick="switchGame(1)">🚢 Морський бій (10х10)</div>
+        <div class="switch-btn" onclick="switchGame(1)">🚢 Морський бій</div>
         <div class="switch-btn" onclick="switchGame(2)">✂️ Камінь-Ножиці</div>
     </div>
 
@@ -205,43 +203,40 @@
     <div id="game-0" class="game-card active">
         <div class="status-text" id="ttt-status">Ваш хід (X)</div>
         <div class="ttt-board" id="ttt-board">
-            <script>
-                for(let i=0; i<9; i++) {
-                    document.write(`<div class="ttt-cell" onclick="makeMove(${i})"></div>`);
-                }
-            </script>
+            <div class="ttt-cell" onclick="makeMove(0)"></div>
+            <div class="ttt-cell" onclick="makeMove(1)"></div>
+            <div class="ttt-cell" onclick="makeMove(2)"></div>
+            <div class="ttt-cell" onclick="makeMove(3)"></div>
+            <div class="ttt-cell" onclick="makeMove(4)"></div>
+            <div class="ttt-cell" onclick="makeMove(5)"></div>
+            <div class="ttt-cell" onclick="makeMove(6)"></div>
+            <div class="ttt-cell" onclick="makeMove(7)"></div>
+            <div class="ttt-cell" onclick="makeMove(8)"></div>
         </div>
         <button class="btn" onclick="resetTTT()">Нова гра</button>
     </div>
 
-    <!-- Гра 2: Морський бій (10х10, 5 кораблів зі звуками) -->
+    <!-- Гра 2: Морський бій (розстановка та бій) -->
     <div id="game-1" class="game-card">
-        <div class="status-text" id="bs-status">Ваш хід! Ворожих кораблів: 5</div>
+        <div class="status-text" id="bs-status">Розставте свої кораблі (виберіть 5 клітинок)</div>
         <div class="battleship-container">
-            <!-- Вороже поле 10х10 -->
-            <div class="fleet-box">
-                <div class="fleet-title">🎯 Ворожа акваторія (10х10)</div>
+            <!-- Вороже поле -->
+            <div class="fleet-box" id="enemy-box" style="display:none;">
+                <div class="fleet-title">🎯 Ворожа акваторія</div>
                 <div class="bs-board" id="enemy-board">
-                    <script>
-                        for(let i=0; i<100; i++) {
-                            document.write(`<div class="bs-cell" onclick="playerShoot(${i})">·</div>`);
-                        }
-                    </script>
+                    <!-- Генерується JS -->
                 </div>
             </div>
-            <!-- Поле гравця 10х10 -->
+            <!-- Поле гравця для розстановки -->
             <div class="fleet-box">
-                <div class="fleet-title">⚓ Ваша флотилія (10х10)</div>
+                <div class="fleet-title" id="player-box-title">⚓ Ваша акваторія (натисніть, щоб сховати корабель)</div>
                 <div class="bs-board" id="player-board">
-                    <script>
-                        for(let i=0; i<100; i++) {
-                            document.write(`<div class="bs-cell" style="color:#64b5f6;">·</div>`);
-                        }
-                    </script>
+                    <!-- Генерується JS -->
                 </div>
             </div>
         </div>
-        <button class="btn" onclick="resetBattleship()" style="margin-top: 8px;">Новий бій</button>
+        <button class="btn" id="bs-action-btn" onclick="startBattle()" style="display:none; margin-top: 8px;">Розпочати бій!</button>
+        <button class="btn" onclick="resetBattleship()" style="margin-top: 8px;">Скинути бій</button>
     </div>
 
     <!-- Гра 3: Камінь, ножиці, папір -->
@@ -262,7 +257,7 @@
         const tg = window.Telegram?.WebApp;
         if (tg) { tg.expand(); tg.ready(); }
 
-        // Аудіо-синтезатор звуків
+        // Звуковий синтезатор
         const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
         function playSound(type) {
             if (!audioCtx) return;
@@ -341,7 +336,7 @@
             const cells = document.getElementById('ttt-board').children;
             for(let i=0; i<9; i++) {
                 cells[i].innerText = tttBoard[i];
-                cells[i].className = 'ttt-cell ' + (tttBoard[i] === 'X' ? 'x' : 'o');
+                cells[i].className = 'ttt-cell ' + (tttBoard[i] === 'X' ? 'x' : tttBoard[i] === 'O' ? 'o' : '');
             }
         }
         function checkWin(p) {
@@ -355,60 +350,138 @@
             updateTTT();
         }
 
-        // Морський бій 10х10 (5 випадкових кораблів)
+        // Морський бій (ініціалізація полів)
+        let playerShips = [];
         let enemyShips = [];
-        function generateShips() {
+        let gameStage = 'setup'; // 'setup' або 'battle'
+        let playerHits = 0, enemyHits = 0;
+
+        function initBoards() {
+            const pBoard = document.getElementById('player-board');
+            const eBoard = document.getElementById('enemy-board');
+            pBoard.innerHTML = '';
+            eBoard.innerHTML = '';
+
+            for(let i=0; i<100; i++) {
+                let pCell = document.createElement('div');
+                pCell.className = 'bs-cell';
+                pCell.innerText = '·';
+                pCell.onclick = () => handleSetupClick(i);
+                pBoard.appendChild(pCell);
+
+                let eCell = document.createElement('div');
+                eCell.className = 'bs-cell';
+                eCell.innerText = '·';
+                eCell.onclick = () => playerShoot(i);
+                eBoard.appendChild(eCell);
+            }
+        }
+
+        function handleSetupClick(i) {
+            if (gameStage !== 'setup') return;
+            if (playerShips.includes(i)) {
+                playerShips = playerShips.filter(pos => pos !== i);
+                document.getElementById('player-board').children[i].innerText = '·';
+            } else if (playerShips.length < 5) {
+                playerShips.push(i);
+                document.getElementById('player-board').children[i].innerText = '🚢';
+                playSound('shot');
+            }
+
+            if (playerShips.length === 5) {
+                document.getElementById('bs-action-btn').style.display = 'inline-block';
+                document.getElementById('bs-status').innerText = 'Кораблі розставлені! Натисніть "Розпочати бій!"';
+            } else {
+                document.getElementById('bs-status').innerText = `Розставте кораблі: обрано ${playerShips.length} з 5`;
+            }
+        }
+
+        function startBattle() {
+            if (playerShips.length < 5) return;
+            gameStage = 'battle';
+            document.getElementById('bs-action-btn').style.display = 'none';
+            document.getElementById('enemy-box').style.display = 'block';
+            document.getElementById('player-box-title').innerText = '⚓ Ваша флотилія';
+            
+            // Генерація ворожих кораблів
             enemyShips = [];
             while(enemyShips.length < 5) {
                 let pos = Math.floor(Math.random() * 100);
                 if(!enemyShips.includes(pos)) enemyShips.push(pos);
             }
+            document.getElementById('bs-status').innerText = 'Бій почався! Стріляйте по ворогу!';
         }
-        generateShips();
-        let hitsCount = 0;
 
         function playerShoot(i) {
-            const cells = document.getElementById('enemy-board').children;
-            if (cells[i].innerText === '💥' || cells[i].innerText === '💧') return;
+            if (gameStage !== 'battle') return;
+            const eCells = document.getElementById('enemy-board').children;
+            if (eCells[i].innerText === '💥' || eCells[i].innerText === '💧') return;
 
             playSound('shot');
             if (enemyShips.includes(i)) {
-                cells[i].innerText = '💥';
-                cells[i].style.background = '#e53935';
+                eCells[i].innerText = '💥';
+                eCells[i].style.background = '#e53935';
                 playSound('hit');
-                hitsCount++;
-                if (hitsCount >= 5) {
-                    document.getElementById('bs-status').innerText = 'Перемога! Всі 5 кораблів знищені! 🎉';
+                playerHits++;
+                if (playerHits === 5) {
+                    document.getElementById('bs-status').innerText = 'Перемога! Ви знищили всю ворожу флотилію! 🎉';
+                    gameStage = 'over';
+                    return;
                 } else {
-                    document.getElementById('bs-status').innerText = `Влучання! Залишилось кораблів: ${5 - hitsCount}`;
+                    document.getElementById('bs-status').innerText = 'Влучання! Зробіть ще постріл!';
                 }
             } else {
-                cells[i].innerText = '💧';
-                cells[i].style.background = '#1e88e5';
+                eCells[i].innerText = '💧';
+                eCells[i].style.background = '#1e88e5';
                 playSound('miss');
-                document.getElementById('bs-status').innerText = 'Мимо! Ворог стріляє у відповідь...';
+                document.getElementById('bs-status').innerText = 'Мимо! Хід ворога...';
+                setTimeout(botShoot, 600);
+            }
+        }
+
+        function botShoot() {
+            if (gameStage !== 'battle') return;
+            let available = [];
+            const pCells = document.getElementById('player-board').children;
+            for(let i=0; i<100; i++) {
+                if(pCells[i].innerText !== '💥' && pCells[i].innerText !== '❌') available.push(i);
+            }
+            if(available.length === 0) return;
+            let target = available[Math.floor(Math.random() * available.length)];
+
+            if(playerShips.includes(target)) {
+                pCells[target].innerText = '💥';
+                pCells[target].style.background = '#e53935';
+                playSound('hit');
+                enemyHits++;
+                if(enemyHits === 5) {
+                    document.getElementById('bs-status').innerText = 'Бій програно! Ворог знищив ваші кораблі 🤖';
+                    gameStage = 'over';
+                } else {
+                    document.getElementById('bs-status').innerText = 'Ворог влучив у ваш корабель! Ваш хід!';
+                }
+            } else {
+                pCells[target].innerText = '❌';
+                playSound('miss');
+                document.getElementById('bs-status').innerText = 'Ворог промахнувся! Ваш хід!';
             }
         }
 
         function resetBattleship() {
-            generateShips();
-            hitsCount = 0;
-            const cells = document.getElementById('enemy-board').children;
-            for(let c of cells) {
-                c.innerText = '·';
-                c.style.background = '#252830';
-            }
-            document.getElementById('bs-status').innerText = 'Ваш хід! Ворожих кораблів: 5';
+            playerShips = [];
+            enemyShips = [];
+            gameStage = 'setup';
+            playerHits = 0;
+            enemyHits = 0;
+            document.getElementById('enemy-box').style.display = 'none';
+            document.getElementById('bs-action-btn').style.display = 'none';
+            document.getElementById('player-box-title').innerText = '⚓ Ваша акваторія (натисніть, щоб сховати корабель)';
+            document.getElementById('bs-status').innerText = 'Розставте свої кораблі (виберіть 5 клітинок)';
+            initBoards();
         }
 
-        // Розстановка своїх кораблів для краси на другому полі
-        window.onload = function() {
-            const pCells = document.getElementById('player-board').children;
-            let myShips = [12, 13, 45, 78, 90];
-            myShips.forEach(pos => {
-                pCells[pos].innerText = '🚢';
-            });
-        };
+        // Запуск ініціалізації полів при завантаженні
+        initBoards();
 
         // Камінь, ножиці, папір
         let pS = 0, bS = 0;

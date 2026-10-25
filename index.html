@@ -30,24 +30,13 @@
             justify-content: space-between;
             align-items: center;
             border-bottom: 1px solid #333;
-            gap: 5px;
         }
-        .header h1 {
-            margin: 0;
-            font-size: 16px;
-            white-space: nowrap;
-        }
-        .header-actions {
-            display: flex;
-            align-items: center;
-            gap: 6px;
-        }
-        /* Блок вибору мов з прапорцями */
+        /* Блок вибору мов з прапорцями замість тексту */
         .lang-switcher {
             display: flex;
-            gap: 3px;
+            gap: 4px;
             background: #2a2a2a;
-            padding: 2px 4px;
+            padding: 3px 6px;
             border-radius: 6px;
             border: 1px solid #444;
         }
@@ -55,15 +44,20 @@
             background: none;
             border: none;
             cursor: pointer;
-            font-size: 14px;
+            font-size: 16px;
             padding: 2px;
             border-radius: 4px;
-            opacity: 0.6;
+            opacity: 0.5;
             transition: all 0.2s;
         }
         .lang-btn.active {
             opacity: 1;
-            background: rgba(255, 255, 255, 0.1);
+            background: rgba(255, 255, 255, 0.12);
+        }
+        .header-actions {
+            display: flex;
+            align-items: center;
+            gap: 8px;
         }
         #ton-connect-btn {
             transform: scale(0.75);
@@ -264,15 +258,15 @@
 <body>
 
     <div class="header">
-        <h1 id="app-title">📖 ЖЖ (Живий журнал)</h1>
+        <!-- Прапорці перемикання мов зліва -->
+        <div class="lang-switcher">
+            <button class="lang-btn active" onclick="setLanguage('uk')" title="Українська">🇺🇦</button>
+            <button class="lang-btn" onclick="setLanguage('en')" title="English">🇬🇧</button>
+            <button class="lang-btn" onclick="setLanguage('de')" title="Deutsch">🇩🇪</button>
+            <button class="lang-btn" onclick="setLanguage('fr')" title="Français">🇫🇷</button>
+        </div>
+        <!-- Гаманець справа незмінно на своєму місці -->
         <div class="header-actions">
-            <!-- Перемикач мов з прапорцями -->
-            <div class="lang-switcher">
-                <button class="lang-btn active" onclick="setLanguage('uk')" title="Українська">🇺🇦</button>
-                <button class="lang-btn" onclick="setLanguage('en')" title="English">🇬🇧</button>
-                <button class="lang-btn" onclick="setLanguage('de')" title="Deutsch">🇩🇪</button>
-                <button class="lang-btn" onclick="setLanguage('fr')" title="Français">🇫🇷</button>
-            </div>
             <div id="ton-connect-btn"></div>
         </div>
     </div>
@@ -294,10 +288,9 @@
     <script>
         const OWNER_WALLET = "UQDXq1iAqu88tVRG62_k03kAXELu_1gzRBMye-VZoFRIRtWw";
 
-        // Словники перекладів
+        // Словники перекладів інтерфейсу
         const translations = {
             uk: {
-                title: "📖 ЖЖ (Живий журнал)",
                 placeholder: "Напишіть вірш або думку... ✍️",
                 send: "Опублікувати",
                 reply: "↩️ Відповісти",
@@ -312,7 +305,6 @@
                 connectWalletAlert: "Підключіть гаманець TON для оплати приватного повідомлення (0.01 TON)."
             },
             en: {
-                title: "📖 LJ (Live Journal)",
                 placeholder: "Write a poem or thought... ✍️",
                 send: "Publish",
                 reply: "↩️ Reply",
@@ -327,7 +319,6 @@
                 connectWalletAlert: "Connect your TON wallet to pay for a private message (0.01 TON)."
             },
             de: {
-                title: "📖 LJ (Live Journal)",
                 placeholder: "Schreibe ein Gedicht oder einen Gedanken... ✍️",
                 send: "Veröffentlichen",
                 reply: "↩️ Antworten",
@@ -342,7 +333,6 @@
                 connectWalletAlert: "Verbinden Sie Ihre TON-Geldbörse, um eine private Nachricht zu bezahlen (0.01 TON)."
             },
             fr: {
-                title: "📖 LJ (Journal Intime)",
                 placeholder: "Écrivez un poème ou une pensée... ✍️",
                 send: "Publier",
                 reply: "↩️ Répondre",
@@ -362,16 +352,11 @@
 
         function setLanguage(lang) {
             currentLang = lang;
-            // Оновлюємо підсвітку кнопок-прапорців
             document.querySelectorAll('.lang-btn').forEach(btn => {
                 btn.classList.toggle('active', btn.getAttribute('onclick').includes(`'${lang}'`));
             });
-            // Оновлюємо статичні елементи
-            document.getElementById('app-title').innerText = translations[lang].title;
             document.getElementById('message-input').placeholder = translations[lang].placeholder;
             document.getElementById('send-btn').innerText = translations[lang].send;
-            
-            // Перезавантажуємо стрічку, щоб застосувати переклад до кнопок і міток
             loadMessages();
         }
 
@@ -716,7 +701,7 @@
             await loadMessages();
         }
 
-        async function updateReaction(id, field,newValue) {
+        async function updateReaction(id, field, newValue) {
             const updateObj = {};
             updateObj[field] = newValue;
             const { error } = await supabaseClient

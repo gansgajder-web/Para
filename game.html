@@ -176,7 +176,7 @@
         <div class="switch-btn" onclick="switchGame(2)">✂️ Камінь-Ножиці</div>
     </div>
 
-    <!-- Гра 1: Хрестики-нулики -->
+    <!-- Гра 1: Хрестики-нулики (Чесний складний бот) -->
     <div id="game-0" class="game-card active">
         <div class="status-text" id="ttt-status">Ваш хід (X)</div>
         <div class="board" id="ttt-board">
@@ -193,7 +193,7 @@
         <button class="btn" onclick="resetTTT()">Нова гра</button>
     </div>
 
-    <!-- Гра 2: Морський бій (Дуель / Міні) -->
+    <!-- Гра 2: Морський бій (Оригінальна версія) -->
     <div id="game-1" class="game-card">
         <div class="status-text">🚢 Морський бій (Дуель)</div>
         <p style="font-size: 13px; color: #b0bec5; line-height: 1.4;">Суперник сховав свої кораблі у квадраті 3х3. Знайдіть їх пострілом!</p>
@@ -230,7 +230,6 @@
         const tg = window.Telegram?.WebApp;
         if (tg) { tg.expand(); tg.ready(); }
 
-        // Перемикання між іграми
         function switchGame(index) {
             const cards = document.querySelectorAll('.game-card');
             const btns = document.querySelectorAll('.switch-btn');
@@ -243,7 +242,7 @@
             });
         }
 
-        // --- ЛОГІКА ХРЕСТИКІВ-НУЛИКІВ ---
+        // --- ХРЕСТИКИ-НУЛИКИ (Чесний та розумний бот без піддавків) ---
         let tttBoard = ['', '', '', '', '', '', '', '', ''];
         let tttGameActive = true;
         let tttPlayerTurn = true;
@@ -271,17 +270,53 @@
             setTimeout(botMove, 500);
         }
 
+        // Алгоритм мінімакс / розумний хід бота, щоб грати чесно і не піддаватись
+        function findBestMove() {
+            // 1. Перевірити, чи може бот виграти за наступний хід
+            for (let i = 0; i < 9; i++) {
+                if (tttBoard[i] === '') {
+                    tttBoard[i] = 'O';
+                    if (checkWin('O')) {
+                        tttBoard[i] = '';
+                        return i;
+                    }
+                    tttBoard[i] = '';
+                }
+            }
+            // 2. Перевірити, чи треба заблокувати виграш гравця
+            for (let i = 0; i < 9; i++) {
+                if (tttBoard[i] === '') {
+                    tttBoard[i] = 'X';
+                    if (checkWin('X')) {
+                        tttBoard[i] = '';
+                        return i;
+                    }
+                    tttBoard[i] = '';
+                }
+            }
+            // 3. Зайняти центр, якщо вільний
+            if (tttBoard[4] === '') return 4;
+
+            // 4. Будь-який вільний хід
+            let emptyCells = tttBoard.map((val, idx) => val === '' ? idx : null).filter(val => val !== null);
+            return emptyCells.length > 0 ? emptyCells[Math.floor(Math.random() * emptyCells.length)] : -1;
+        }
+
         function botMove() {
             if (!tttGameActive) return;
-            let emptyCells = tttBoard.map((val, idx) => val === '' ? idx : null).filter(val => val !== null);
-            if (emptyCells.length === 0) return;
-
-            let randomIndex = emptyCells[Math.floor(Math.random() * emptyCells.length)];
-            tttBoard[randomIndex] = 'O';
+            let bestIdx = findBestMove();
+            if (bestIdx !== -1) {
+                tttBoard[bestIdx] = 'O';
+            }
             updateTTTBoard();
 
             if (checkWin('O')) {
                 document.getElementById('ttt-status').innerText = 'Переміг Бот! 🤖';
+                tttGameActive = false;
+                return;
+            }
+            if (tttBoard.every(cell => cell !== '')) {
+                document.getElementById('ttt-status').innerText = 'Нічия! 🤝';
                 tttGameActive = false;
                 return;
             }
@@ -315,7 +350,7 @@
             updateTTTBoard();
         }
 
-        // --- ЛОГІКА МОРСЬКОГО БОЮ ---
+        // --- МОРСЬКИЙ БІЙ (Оригінальний) ---
         let shipPosition = Math.floor(Math.random() * 9);
         let bsAttempts = 3;
 
@@ -335,7 +370,7 @@
                 if (bsAttempts > 0) {
                     document.getElementById('bs-status').innerText = `Мимо! Залишилось спроб: ${bsAttempts}`;
                 } else {
-                    document.getElementById('bs-status').innerText = `Побіг програно! Корабель був тут 💥`;
+                    document.getElementById('bs-status').innerText = `Бій програно! Корабель був тут 💥`;
                     cells[shipPosition].innerText = '💥';
                 }
             }
@@ -352,7 +387,7 @@
             document.getElementById('bs-status').innerText = 'Зробіть постріл!';
         }
 
-        // --- ЛОГІКА КАМІНЬ, НОЖИЦІ, ПАПІР ---
+        // --- КАМІНЬ, НОЖИЦІ, ПАПІР ---
         let pScore = 0, bScore = 0;
         const rpsEmojis = { rock: '✊', paper: '✋', scissors: '✌️' };
 

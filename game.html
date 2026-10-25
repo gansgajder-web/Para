@@ -3,592 +3,382 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Ігрова зала — Секретна кімната</title>
+    <title>Ігрова Зала — ЖЖ</title>
     <!-- Telegram WebApp SDK -->
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
-    <!-- TON Connect UI SDK -->
-    <script src="https://unpkg.com/@tonconnect/ui@latest/dist/tonconnect-ui.min.js"></script>
-
     <style>
-        * {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-        }
         body {
-            background-color: #121212;
-            color: #ffffff;
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            margin: 0;
+            padding: 15px;
+            background-color: #121212;
+            color: #e0e0e0;
             display: flex;
             flex-direction: column;
             align-items: center;
-            justify-content: space-between;
             min-height: 100vh;
-            padding: 15px;
         }
-
         .header {
             width: 100%;
+            max-width: 400px;
             display: flex;
             justify-content: space-between;
             align-items: center;
-            padding-bottom: 10px;
-            border-bottom: 1px solid #222;
+            margin-bottom: 15px;
         }
-
-        .header h2 {
-            font-size: 15px;
-            color: #ffc107;
+        .header h1 {
+            margin: 0;
+            font-size: 18px;
+            color: #ffb74d;
         }
-
-        #ton-connect-btn {
-            transform: scale(0.85);
-            transform-origin: right center;
-        }
-
+        /* Перемикач ігор */
         .game-switcher {
             display: flex;
             gap: 8px;
-            margin: 12px 0;
             width: 100%;
-            max-width: 340px;
+            max-width: 400px;
+            margin-bottom: 20px;
+            overflow-x: auto;
+            padding-bottom: 5px;
         }
-
         .switch-btn {
             flex: 1;
             background: #1e1e1e;
-            color: #aaa;
             border: 1px solid #333;
-            padding: 8px;
+            color: #aaa;
+            padding: 10px;
             border-radius: 8px;
-            font-size: 13px;
             cursor: pointer;
+            font-size: 12px;
             font-weight: bold;
-            transition: 0.2s;
-        }
-
-        .switch-btn.active {
-            background: #ffc107;
-            color: #121212;
-            border-color: #ffc107;
-        }
-
-        .game-container {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            flex: 1;
-            width: 100%;
-        }
-
-        .status-msg {
-            font-size: 14px;
-            font-weight: 500;
-            color: #64b5f6;
-            margin-bottom: 10px;
             text-align: center;
-            min-height: 20px;
+            white-space: nowrap;
+            transition: all 0.2s;
         }
-
-        /* Хрестики-нулики */
-        .tictactoe-board {
-            display: grid;
-            grid-template-columns: repeat(3, 85px);
-            grid-template-rows: repeat(3, 85px);
-            gap: 8px;
-            background-color: #222;
-            padding: 8px;
+        .switch-btn.active {
+            background: #ffb74d;
+            color: #121212;
+            border-color: #ffb74d;
+        }
+        /* Ігрові контейнери */
+        .game-card {
+            display: none;
+            width: 100%;
+            max-width: 360px;
+            background: #1e1e1e;
+            padding: 20px;
             border-radius: 12px;
             border: 1px solid #333;
+            text-align: center;
+            box-sizing: border-box;
         }
-
-        .ttt-cell {
-            background-color: #1c1c1e;
-            border: none;
-            border-radius: 8px;
-            font-size: 38px;
+        .game-card.active {
+            display: block;
+        }
+        .status-text {
+            font-size: 14px;
             font-weight: bold;
-            color: #fff;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
+            margin-bottom: 15px;
+            color: #64b5f6;
+            min-height: 20px;
         }
-
-        .ttt-cell.x { color: #ff5252; }
-        .ttt-cell.o { color: #64b5f6; }
-
-        /* Морський бій — дуель */
-        .battleship-boards-wrapper {
-            display: flex;
-            flex-direction: column;
-            gap: 12px;
-            align-items: center;
-        }
-
-        .board-section {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-        }
-
-        .board-title {
-            font-size: 12px;
-            color: #aaa;
-            margin-bottom: 4px;
-        }
-
-        .battleship-board {
+        /* Хрестики-нулики */
+        .board {
             display: grid;
-            grid-template-columns: repeat(5, 42px);
-            grid-template-rows: repeat(5, 42px);
-            gap: 4px;
-            background-color: #222;
-            padding: 5px;
-            border-radius: 8px;
-            border: 1px solid #333;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 8px;
+            margin-bottom: 15px;
         }
-
-        .bs-cell {
-            background-color: #1c1c1e;
-            border: 1px solid #333;
-            border-radius: 4px;
-            font-size: 16px;
-            cursor: pointer;
+        .cell {
+            background: #252830;
+            aspect-ratio: 1;
+            border-radius: 8px;
             display: flex;
             align-items: center;
             justify-content: center;
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+            border: 1px solid #333;
+            transition: background 0.2s;
         }
-
-        .bs-cell.ship { background-color: rgba(255, 193, 7, 0.3); }
-        .bs-cell.hit { background-color: rgba(255, 82, 82, 0.3); }
-        .bs-cell.miss { background-color: rgba(100, 181, 246, 0.2); }
-
-        .action-btn {
-            margin-top: 15px;
-            background-color: #2c2c2e;
-            color: #ffc107;
+        .cell:hover {
+            background: #2c323f;
+        }
+        .cell.x { color: #ff5252; }
+        .cell.o { color: #64b5f6; }
+        
+        /* Загальні кнопки */
+        .btn {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 14px;
+            margin-top: 5px;
+        }
+        .btn:hover {
+            background-color: #0056b3;
+        }
+        /* Камінь, ножиці, папір */
+        .rps-choices {
+            display: flex;
+            justify-content: center;
+            gap: 12px;
+            margin: 20px 0;
+        }
+        .rps-btn {
+            background: #252830;
             border: 1px solid #444;
-            padding: 8px 16px;
+            font-size: 30px;
+            padding: 15px;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: transform 0.1s, background 0.2s;
+        }
+        .rps-btn:hover {
+            background: #333946;
+            transform: scale(1.05);
+        }
+        .score-board {
+            font-size: 13px;
+            color: #888;
+            margin-bottom: 15px;
+        }
+        /* Повернення */
+        .back-link {
+            display: inline-block;
+            margin-top: 25px;
+            color: #ffb74d;
+            text-decoration: none;
             font-size: 13px;
             font-weight: bold;
-            border-radius: 8px;
-            cursor: pointer;
         }
-
-        .footer {
-            width: 100%;
-            max-width: 400px;
-            margin-top: 10px;
-        }
-
-        .back-btn {
-            display: block;
-            width: 100%;
-            padding: 12px;
-            background-color: #1e1e1e;
-            color: #ffc107;
-            text-align: center;
-            text-decoration: none;
-            border-radius: 10px;
-            font-weight: bold;
-            border: 1px solid #333;
+        .back-link:hover {
+            text-decoration: underline;
         }
     </style>
 </head>
 <body>
 
     <div class="header">
-        <h2>🕹️ Ігрова Зала</h2>
-        <div id="ton-connect-btn"></div>
+        <h1>🕹️ Ігрова Зала</h1>
+        <div id="user-wallet-label" style="font-size: 11px; color: #888;">ЖЖ клуб</div>
     </div>
 
+    <!-- Перемикач ігор -->
     <div class="game-switcher">
-        <button class="switch-btn active" id="tab-ttt" onclick="switchGame('ttt')">❌ Хрестики-нулики</button>
-        <button class="switch-btn" id="tab-bs" onclick="switchGame('bs')">🚢 Морський бій (Дуель)</button>
+        <div class="switch-btn active" onclick="switchGame(0)">❌ Хрестики</div>
+        <div class="switch-btn" onclick="switchGame(1)">🚢 Морський бій</div>
+        <div class="switch-btn" onclick="switchGame(2)">✂️ Камінь-Ножиці</div>
     </div>
 
-    <div class="game-container">
-        <!-- Хрестики-нулики -->
-        <div id="game-ttt" style="display: flex; flex-direction: column; align-items: center;">
-            <div class="status-msg" id="ttt-status">Ваш хід (X) проти розумного Бота</div>
-            <div class="tictactoe-board" id="ttt-board">
-                <button class="ttt-cell" onclick="makeTTTMove(0)"></button>
-                <button class="ttt-cell" onclick="makeTTTMove(1)"></button>
-                <button class="ttt-cell" onclick="makeTTTMove(2)"></button>
-                <button class="ttt-cell" onclick="makeTTTMove(3)"></button>
-                <button class="ttt-cell" onclick="makeTTTMove(4)"></button>
-                <button class="ttt-cell" onclick="makeTTTMove(5)"></button>
-                <button class="ttt-cell" onclick="makeTTTMove(6)"></button>
-                <button class="ttt-cell" onclick="makeTTTMove(7)"></button>
-                <button class="ttt-cell" onclick="makeTTTMove(8)"></button>
-            </div>
-            <button class="action-btn" onclick="resetTTT()">🔄 Нова гра</button>
+    <!-- Гра 1: Хрестики-нулики -->
+    <div id="game-0" class="game-card active">
+        <div class="status-text" id="ttt-status">Ваш хід (X)</div>
+        <div class="board" id="ttt-board">
+            <div class="cell" onclick="makeMove(0)"></div>
+            <div class="cell" onclick="makeMove(1)"></div>
+            <div class="cell" onclick="makeMove(2)"></div>
+            <div class="cell" onclick="makeMove(3)"></div>
+            <div class="cell" onclick="makeMove(4)"></div>
+            <div class="cell" onclick="makeMove(5)"></div>
+            <div class="cell" onclick="makeMove(6)"></div>
+            <div class="cell" onclick="makeMove(7)"></div>
+            <div class="cell" onclick="makeMove(8)"></div>
         </div>
+        <button class="btn" onclick="resetTTT()">Нова гра</button>
+    </div>
 
-        <!-- Морський бій -->
-        <div id="game-bs" style="display: none; flex-direction: column; align-items: center;">
-            <div class="status-msg" id="bs-status">Розставте 3 свої кораблі на нижньому полі!</div>
-            
-            <div class="battleship-boards-wrapper">
-                <div class="board-section" id="enemy-section" style="display:none;">
-                    <span class="board-title">🎯 Поле супротивника (стріляйте сюди)</span>
-                    <div class="battleship-board" id="bs-enemy-board"></div>
-                </div>
+    <!-- Гра 2: Морський бій (Дуель / Міні) -->
+    <div id="game-1" class="game-card">
+        <div class="status-text">🚢 Морський бій (Дуель)</div>
+        <p style="font-size: 13px; color: #b0bec5; line-height: 1.4;">Суперник сховав свої кораблі у квадраті 3х3. Знайдіть їх пострілом!</p>
+        <div class="board" id="battleship-board" style="margin-top: 15px;">
+            <div class="cell" onclick="shootShip(0)">?</div>
+            <div class="cell" onclick="shootShip(1)">?</div>
+            <div class="cell" onclick="shootShip(2)">?</div>
+            <div class="cell" onclick="shootShip(3)">?</div>
+            <div class="cell" onclick="shootShip(4)">?</div>
+            <div class="cell" onclick="shootShip(5)">?</div>
+            <div class="cell" onclick="shootShip(6)">?</div>
+            <div class="cell" onclick="shootShip(7)">?</div>
+            <div class="cell" onclick="shootShip(8)">?</div>
+        </div>
+        <div class="status-text" id="bs-status" style="margin-top: 10px; font-size: 12px;">Зробіть постріл!</div>
+        <button class="btn" onclick="resetBattleship()">Скинути поле</button>
+    </div>
 
-                <div class="board-section">
-                    <span class="board-title" id="my-board-title">🛡️ Ваш флот (оберіть 3 позиції)</span>
-                    <div class="battleship-board" id="bs-my-board"></div>
-                </div>
-            </div>
-
-            <button class="action-btn" id="bs-action-btn" onclick="resetBS()">🔄 Переставити</button>
+    <!-- Гра 3: Камінь, ножиці, папір -->
+    <div id="game-2" class="game-card">
+        <div class="status-text">✂️ Камінь, ножиці, папір</div>
+        <div class="score-board">Рахунок: Ви <span id="player-score">0</span> : <span id="bot-score">0</span> Бот</div>
+        <div id="rps-result" style="font-size: 14px; margin-bottom: 10px; color: #fff;">Оберіть свій варіант:</div>
+        <div class="rps-choices">
+            <button class="rps-btn" onclick="playRPS('rock')">✊</button>
+            <button class="rps-btn" onclick="playRPS('paper')">✋</button>
+            <button class="rps-btn" onclick="playRPS('scissors')">✌️</button>
         </div>
     </div>
 
-    <div class="footer">
-        <a href="index.html" class="back-btn">← Повернутися до ЖЖ</a>
-    </div>
+    <a href="index.html" class="back-link">← Повернутися до Живого журналу</a>
 
     <script>
         const tg = window.Telegram?.WebApp;
         if (tg) { tg.expand(); tg.ready(); }
 
-        const tonConnectUI = new TON_CONNECT_UI.TonConnectUI({
-            manifestUrl: 'https://gansgajder-web.github.io/Para/tonconnect-manifest.json',
-            buttonRootId: 'ton-connect-btn'
-        });
+        // Перемикання між іграми
+        function switchGame(index) {
+            const cards = document.querySelectorAll('.game-card');
+            const btns = document.querySelectorAll('.switch-btn');
+            
+            cards.forEach((card, i) => {
+                card.classList.toggle('active', i === index);
+            });
+            btns.forEach((btn, i) => {
+                btn.classList.toggle('active', i === index);
+            });
+        }
 
-        /* --- СИНТЕЗАТОР ЗВУКІВ (Web Audio API) --- */
-        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        // --- ЛОГІКА ХРЕСТИКІВ-НУЛИКІВ ---
+        let tttBoard = ['', '', '', '', '', '', '', '', ''];
+        let tttGameActive = true;
+        let tttPlayerTurn = true;
 
-        function playSound(type) {
-            if (audioCtx.state === 'suspended') {
-                audioCtx.resume();
+        function makeMove(index) {
+            if (!tttGameActive || !tttPlayerTurn || tttBoard[index] !== '') return;
+
+            tttBoard[index] = 'X';
+            updateTTTBoard();
+
+            if (checkWin('X')) {
+                document.getElementById('ttt-status').innerText = 'Ви перемогли! 🎉';
+                tttGameActive = false;
+                return;
             }
-            const osc = audioCtx.createOscillator();
-            const gain = audioCtx.createGain();
-            osc.connect(gain);
-            gain.connect(audioCtx.destination);
+            if (tttBoard.every(cell => cell !== '')) {
+                document.getElementById('ttt-status').innerText = 'Нічия! 🤝';
+                tttGameActive = false;
+                return;
+            }
 
-            let now = audioCtx.currentTime;
+            tttPlayerTurn = false;
+            document.getElementById('ttt-status').innerText = 'Хід бота... 🤖';
 
-            if (type === 'click') {
-                osc.type = 'sine';
-                osc.frequency.setValueAtTime(400, now);
-                osc.frequency.exponentialRampToValueAtTime(800, now + 0.05);
-                gain.gain.setValueAtTime(0.1, now);
-                gain.gain.exponentialRampToValueAtTime(0.01, now + 0.05);
-                osc.start(now);
-                osc.stop(now + 0.05);
-            } else if (type === 'hit') {
-                osc.type = 'square';
-                osc.frequency.setValueAtTime(150, now);
-                osc.frequency.exponentialRampToValueAtTime(40, now + 0.2);
-                gain.gain.setValueAtTime(0.2, now);
-                gain.gain.exponentialRampToValueAtTime(0.01, now + 0.2);
-                osc.start(now);
-                osc.stop(now + 0.2);
-            } else if (type === 'miss') {
-                osc.type = 'sine';
-                osc.frequency.setValueAtTime(300, now);
-                osc.frequency.exponentialRampToValueAtTime(100, now + 0.15);
-                gain.gain.setValueAtTime(0.1, now);
-                gain.gain.exponentialRampToValueAtTime(0.01, now + 0.15);
-                osc.start(now);
-                osc.stop(now + 0.15);
-            } else if (type === 'win') {
-                osc.type = 'triangle';
-                osc.frequency.setValueAtTime(300, now);
-                osc.frequency.setValueAtTime(450, now + 0.1);
-                osc.frequency.setValueAtTime(600, now + 0.2);
-                gain.gain.setValueAtTime(0.15, now);
-                gain.gain.exponentialRampToValueAtTime(0.01, now + 0.4);
-                osc.start(now);
-                osc.stop(now + 0.4);
-            } else if (type === 'lose') {
-                osc.type = 'sawtooth';
-                osc.frequency.setValueAtTime(250, now);
-                osc.frequency.exponentialRampToValueAtTime(80, now + 0.4);
-                gain.gain.setValueAtTime(0.2, now);
-                gain.gain.exponentialRampToValueAtTime(0.01, now + 0.4);
-                osc.start(now);
-                osc.stop(now + 0.4);
+            setTimeout(botMove, 500);
+        }
+
+        function botMove() {
+            if (!tttGameActive) return;
+            let emptyCells = tttBoard.map((val, idx) => val === '' ? idx : null).filter(val => val !== null);
+            if (emptyCells.length === 0) return;
+
+            let randomIndex = emptyCells[Math.floor(Math.random() * emptyCells.length)];
+            tttBoard[randomIndex] = 'O';
+            updateTTTBoard();
+
+            if (checkWin('O')) {
+                document.getElementById('ttt-status').innerText = 'Переміг Бот! 🤖';
+                tttGameActive = false;
+                return;
+            }
+
+            tttPlayerTurn = true;
+            document.getElementById('ttt-status').innerText = 'Ваш хід (X)';
+        }
+
+        function updateTTTBoard() {
+            const cells = document.getElementById('ttt-board').children;
+            for (let i = 0; i < cells.length; i++) {
+                cells[i].innerText = tttBoard[i];
+                cells[i].className = 'cell ' + (tttBoard[i] === 'X' ? 'x' : tttBoard[i] === 'O' ? 'o' : '');
             }
         }
 
-        function switchGame(game) {
-            playSound('click');
-            document.getElementById('game-ttt').style.display = game === 'ttt' ? 'flex' : 'none';
-            document.getElementById('game-bs').style.display = game === 'bs' ? 'flex' : 'none';
-            document.getElementById('tab-ttt').classList.toggle('active', game === 'ttt');
-            document.getElementById('tab-bs').classList.toggle('active', game === 'bs');
-            if(game === 'bs' && bsMyCells.length === 0) initBS();
+        function checkWin(player) {
+            const wins = [
+                [0,1,2], [3,4,5], [6,7,8],
+                [0,3,6], [1,4,7], [2,5,8],
+                [0,4,8], [2,4,6]
+            ];
+            return wins.some(comb => comb.every(idx => tttBoard[idx] === player));
         }
-
-        /* --- ХРЕСТИКИ-НУЛИКИ --- */
-        let tttBoard = ["", "", "", "", "", "", "", "", ""];
-        let tttActive = true;
-        const wins = [[0,1,2],[3,4,5],[6,7,8],[0,3,6],[1,4,7],[2,5,8],[0,4,8],[2,4,6]];
-        const tttCells = document.querySelectorAll('.ttt-cell');
-
-        function makeTTTMove(i) {
-            if (tttBoard[i] !== "" || !tttActive) return;
-            playSound('click');
-            tttBoard[i] = "X";
-            tttCells[i].innerText = "X";
-            tttCells[i].classList.add("x");
-
-            if (checkTTTWin()) return;
-
-            tttActive = false;
-            document.getElementById('ttt-status').innerText = "Бот думає... 🤔";
-            setTimeout(botTTTMove, 450);
-        }
-
-        function botTTTMove() {
-            let move = findBestTTTMove();
-            if (move !== null) {
-                playSound('click');
-                tttBoard[move] = "O";
-                tttCells[move].innerText = "O";
-                tttCells[move].classList.add("o");
-            }
-            if (!checkTTTWin()) {
-                tttActive = true;
-                document.getElementById('ttt-status').innerText = "Ваш хід (X)";
-            }
-        }
-
-        function findBestTTTMove() {
-            for (let c of wins) {
-                let [a, b, cIndex] = c;
-                let line = [tttBoard[a], tttBoard[b], tttBoard[cIndex]];
-                if (line.filter(v => v === "O").length === 2 && line.includes("")) {
-                    if (tttBoard[a] === "") return a;
-                    if (tttBoard[b] === "") return b;
-                    if (tttBoard[cIndex] === "") return cIndex;
-                }
-            }
-            for (let c of wins) {
-                let [a, b, cIndex] = c;
-                let line = [tttBoard[a], tttBoard[b], tttBoard[cIndex]];
-                if (line.filter(v => v === "X").length === 2 && line.includes("")) {
-                    if (tttBoard[a] === "") return a;
-                    if (tttBoard[b] === "") return b;
-                    if (tttBoard[cIndex] === "") return cIndex;
-                }
-            }
-            if (tttBoard[4] === "") return 4;
-            let empty = tttBoard.map((v, idx) => v === "" ? idx : null).filter(v => v !== null);
-            if (empty.length === 0) return null;
-            return empty[Math.floor(Math.random() * empty.length)];
-        }
-
-        function checkTTTWin() {
-            for (let c of wins) {
-                if (tttBoard[c[0]] && tttBoard[c[0]] === tttBoard[c[1]] && tttBoard[c[0]] === tttBoard[c[2]]) {
-                    let winner = tttBoard[c[0]];
-                    document.getElementById('ttt-status').innerText = winner === "X" ? "Ви перемогли! 🎉" : "Переміг Бот! 🤖";
-                    if (winner === "X") playSound('win'); else playSound('lose');
-                    tttActive = false;
-                    return true;
-                }
-            }
-            if (!boardIsNotEmptyOrFull()) { // просто перевірка нічиєї
-                if (!tttBoard.includes("")) {
-                    document.getElementById('ttt-status').innerText = "Нічия! 🤝";
-                    playSound('miss');
-                    tttActive = false;
-                    return true;
-                }
-            }
-            return false;
-        }
-
-        function boardIsNotEmptyOrFull() { return false; }
 
         function resetTTT() {
-            playSound('click');
-            tttBoard = ["", "", "", "", "", "", "", "", ""];
-            tttActive = true;
-            document.getElementById('ttt-status').innerText = "Ваш хід (X) проти розумного Бота";
-            tttCells.forEach(c => { c.innerText = ""; c.classList.remove('x', 'o'); });
+            tttBoard = ['', '', '', '', '', '', '', '', ''];
+            tttGameActive = true;
+            tttPlayerTurn = true;
+            document.getElementById('ttt-status').innerText = 'Ваш хід (X)';
+            updateTTTBoard();
         }
 
-        /* --- МОРСЬКИЙ БІЙ --- */
-        let bsEnemyBoardEl = document.getElementById('bs-enemy-board');
-        let bsMyBoardEl = document.getElementById('bs-my-board');
-        let bsEnemyCells = [];
-        let bsMyCells = [];
-        let enemyShips = [];
-        let myShips = [];
-        let myHits = 0;
-        let botHits = 0;
-        let gameState = "placing";
-        let bsActive = true;
+        // --- ЛОГІКА МОРСЬКОГО БОЮ ---
+        let shipPosition = Math.floor(Math.random() * 9);
+        let bsAttempts = 3;
 
-        function initBS() {
-            playSound('click');
-            bsEnemyBoardEl.innerHTML = "";
-            bsMyBoardEl.innerHTML = "";
-            bsEnemyCells = [];
-            bsMyCells = [];
-            enemyShips = [];
-            myShips = [];
-            myHits = 0;
-            botHits = 0;
-            gameState = "placing";
-            bsActive = true;
+        function shootShip(index) {
+            const cells = document.getElementById('battleship-board').children;
+            if (bsAttempts <= 0 || cells[index].innerText === '💥' || cells[index].innerText === '💧') return;
 
-            document.getElementById('bs-status').innerText = "Розставте 3 свої кораблі (натисніть 3 клітинки знизу)";
-            document.getElementById('enemy-section').style.display = "none";
-            document.getElementById('my-board-title').innerText = "🛡️ Ваш флот (оберіть 3 позиції)";
-            document.getElementById('bs-action-btn').innerText = "🔄 Переставити";
-
-            for(let i=0; i<25; i++) {
-                let cell = document.createElement('button');
-                cell.className = 'bs-cell';
-                cell.onclick = () => placeMyShip(i, cell);
-                bsMyBoardEl.appendChild(cell);
-                bsMyCells.push(cell);
-            }
-        }
-
-        function placeMyShip(i, cell) {
-            if (gameState !== "placing") return;
-            if (myShips.includes(i)) return;
-
-            playSound('click');
-            myShips.push(i);
-            cell.classList.add('ship');
-            cell.innerText = "🚢";
-
-            if (myShips.length === 3) {
-                gameState = "battleship_ready";
-                document.getElementById('bs-status').innerText = "Кораблі розставлені! Натисніть «Почати бій»";
-                document.getElementById('bs-action-btn').innerText = "🚀 Почати бій";
-                document.getElementById('bs-action-btn').onclick = startBattle;
+            if (index === shipPosition) {
+                cells[index].innerText = '💥';
+                cells[index].style.background = '#e53935';
+                document.getElementById('bs-status').innerText = 'Потоплено! Ви виграли бій! 🎉';
+                bsAttempts = 0;
             } else {
-                document.getElementById('bs-status').innerText = `Залишилось розставити: ${3 - myShips.length} кораблі`;
-            }
-        }
-
-        function startBattle() {
-            playSound('click');
-            gameState = "battling";
-            document.getElementById('bs-action-btn').innerText = "🔄 Новий бій";
-            document.getElementById('bs-action-btn').onclick = resetBS;
-            document.getElementById('enemy-section').style.display = "flex";
-            document.getElementById('my-board-title').innerText = "🛡️ Ваш флот";
-            document.getElementById('bs-status').innerText = "Бій почався! Ваш хід — стріляйте по ворогу.";
-
-            while(enemyShips.length < 3) {
-                let pos = Math.floor(Math.random() * 25);
-                if(!enemyShips.includes(pos)) enemyShips.push(pos);
-            }
-
-            bsEnemyBoardEl.innerHTML = "";
-            bsEnemyCells = [];
-            for(let i=0; i<25; i++) {
-                let cell = document.createElement('button');
-                cell.className = 'bs-cell';
-                cell.onclick = () => playerShoot(i, cell);
-                bsEnemyBoardEl.appendChild(cell);
-                bsEnemyCells.push(cell);
-            }
-
-            bsMyCells.forEach((cell, idx) => {
-                cell.onclick = null;
-                if(!myShips.includes(idx)) {
-                    cell.innerText = "";
-                }
-            });
-        }
-
-        function revealEnemyShips() {
-            // Показуємо де бот сховав кораблі, які ви не встигли знайти
-            enemyShips.forEach(pos => {
-                let cell = bsEnemyCells[pos];
-                if (!cell.classList.contains('hit')) {
-                    cell.innerText = "🚢";
-                    cell.style.backgroundColor = "rgba(255, 193, 7, 0.3)";
-                }
-            });
-        }
-
-        function playerShoot(i, cell) {
-            if (gameState !== "battling" || !bsActive || cell.classList.contains('hit') || cell.classList.contains('miss')) return;
-
-            if (enemyShips.includes(i)) {
-                playSound('hit');
-                cell.innerText = "💥";
-                cell.classList.add('hit');
-                myHits++;
-                if (myHits === 3) {
-                    document.getElementById('bs-status').innerText = "Перемога! Ви знищили весь флот бота! 🏆";
-                    playSound('win');
-                    bsActive = false;
-                    revealEnemyShips();
-                    return;
+                cells[index].innerText = '💧';
+                cells[index].style.background = '#1e88e5';
+                bsAttempts--;
+                if (bsAttempts > 0) {
+                    document.getElementById('bs-status').innerText = `Мимо! Залишилось спроб: ${bsAttempts}`;
                 } else {
-                    document.getElementById('bs-status').innerText = "Є влучання! Ворог відповідає... 🎯";
+                    document.getElementById('bs-status').innerText = `Побіг програно! Корабель був тут 💥`;
+                    cells[shipPosition].innerText = '💥';
                 }
+            }
+        }
+
+        function resetBattleship() {
+            shipPosition = Math.floor(Math.random() * 9);
+            bsAttempts = 3;
+            const cells = document.getElementById('battleship-board').children;
+            for (let cell of cells) {
+                cell.innerText = '?';
+                cell.style.background = '#252830';
+            }
+            document.getElementById('bs-status').innerText = 'Зробіть постріл!';
+        }
+
+        // --- ЛОГІКА КАМІНЬ, НОЖИЦІ, ПАПІР ---
+        let pScore = 0, bScore = 0;
+        const rpsEmojis = { rock: '✊', paper: '✋', scissors: '✌️' };
+
+        function playRPS(playerChoice) {
+            const choices = ['rock', 'paper', 'scissors'];
+            const botChoice = choices[Math.floor(Math.random() * 3)];
+            
+            let resultText = '';
+            if (playerChoice === botChoice) {
+                resultText = `Нічия! Обидва обрали ${rpsEmojis[playerChoice]}`;
+            } else if (
+                (playerChoice === 'rock' && botChoice === 'scissors') ||
+                (playerChoice === 'paper' && botChoice === 'rock') ||
+                (playerChoice === 'scissors' && botChoice === 'paper')
+            ) {
+                pScore++;
+                resultText = `Ви виграли! ${rpsEmojis[playerChoice]} б'є ${rpsEmojis[botChoice]}`;
             } else {
-                playSound('miss');
-                cell.innerText = "💧";
-                cell.classList.add('miss');
-                document.getElementById('bs-status').innerText = "Мимо! Хід бота... 🤖";
+                bScore++;
+                resultText = `Бот виграв! ${rpsEmojis[botChoice]} б'є ${rpsEmojis[playerChoice]}`;
             }
 
-            bsActive = false;
-            setTimeout(botShoot, 600);
+            document.getElementById('player-score').innerText = pScore;
+            document.getElementById('bot-score').innerText = bScore;
+            document.getElementById('rps-result').innerText = resultText;
         }
-
-        function botShoot() {
-            if (gameState === "battling" && !bsActive && myHits < 3) {
-                let available = [];
-                for(let i=0; i<25; i++) {
-                    let c = bsMyCells[i];
-                    if(!c.classList.contains('hit') && !c.classList.contains('miss')) {
-                        available.push(i);
-                    }
-                }
-                if(available.length === 0) return;
-
-                let botTarget = available[Math.floor(Math.random() * available.length)];
-                let targetCell = bsMyCells[botTarget];
-
-                if(myShips.includes(botTarget)) {
-                    playSound('hit');
-                    targetCell.innerText = "💥";
-                    targetCell.classList.add('hit');
-                    botHits++;
-                    if(botHits === 3) {
-                        document.getElementById('bs-status').innerText = "Поразка! Бот потопив ваш флот! ❌";
-                        playSound('lose');
-                        bsActive = false;
-                        revealEnemyShips(); // Відкриваємо де ховались кораблі ворога
-                        return;
-                    } else {
-                        document.getElementById('bs-status').innerText = "Бот влучив у ваш корабель! Ваш хід 🎯";
-                    }
-                } else {
-                    playSound('miss');
-                    targetCell.innerText = "💧";
-                    targetCell.classList.add('miss');
-                    document.getElementById('bs-status').innerText = "Бот промахнувся! Ваш хід 🟢";
-                }
-                bsActive = true;
-            }
-        }
-
-        function resetBS() {
-            initBS();
-        }
-
-        initBS();
     </script>
 </body>
 </html>

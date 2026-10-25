@@ -25,23 +25,48 @@
         .header {
             background-color: #1f1f1f;
             color: #ffffff;
-            padding: 10px 15px;
+            padding: 8px 12px;
             display: flex;
             justify-content: space-between;
             align-items: center;
             border-bottom: 1px solid #333;
+            gap: 5px;
         }
         .header h1 {
             margin: 0;
-            font-size: 18px;
+            font-size: 16px;
+            white-space: nowrap;
         }
         .header-actions {
             display: flex;
             align-items: center;
-            gap: 8px;
+            gap: 6px;
+        }
+        /* Блок вибору мов з прапорцями */
+        .lang-switcher {
+            display: flex;
+            gap: 3px;
+            background: #2a2a2a;
+            padding: 2px 4px;
+            border-radius: 6px;
+            border: 1px solid #444;
+        }
+        .lang-btn {
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-size: 14px;
+            padding: 2px;
+            border-radius: 4px;
+            opacity: 0.6;
+            transition: all 0.2s;
+        }
+        .lang-btn.active {
+            opacity: 1;
+            background: rgba(255, 255, 255, 0.1);
         }
         #ton-connect-btn {
-            transform: scale(0.85);
+            transform: scale(0.75);
             transform-origin: right center;
         }
         #chat-container {
@@ -239,8 +264,15 @@
 <body>
 
     <div class="header">
-        <h1>📖 ЖЖ (Живий журнал)</h1>
+        <h1 id="app-title">📖 ЖЖ (Живий журнал)</h1>
         <div class="header-actions">
+            <!-- Перемикач мов з прапорцями -->
+            <div class="lang-switcher">
+                <button class="lang-btn active" onclick="setLanguage('uk')" title="Українська">🇺🇦</button>
+                <button class="lang-btn" onclick="setLanguage('en')" title="English">🇬🇧</button>
+                <button class="lang-btn" onclick="setLanguage('de')" title="Deutsch">🇩🇪</button>
+                <button class="lang-btn" onclick="setLanguage('fr')" title="Français">🇫🇷</button>
+            </div>
             <div id="ton-connect-btn"></div>
         </div>
     </div>
@@ -261,6 +293,87 @@
 
     <script>
         const OWNER_WALLET = "UQDXq1iAqu88tVRG62_k03kAXELu_1gzRBMye-VZoFRIRtWw";
+
+        // Словники перекладів
+        const translations = {
+            uk: {
+                title: "📖 ЖЖ (Живий журнал)",
+                placeholder: "Напишіть вірш або думку... ✍️",
+                send: "Опублікувати",
+                reply: "↩️ Відповісти",
+                privateBtn: "📩 Приватне",
+                share: "🔗 Поділитися",
+                door: "🚪 Двері",
+                delete: "🗑️ Видалити",
+                privateLabel: "🔒 [Приватне]",
+                replyLabelRef: "↩️ Відповідь на:",
+                privateReplyLabel: "📩 Приватне повідомлення для:",
+                confirmDelete: "Видалити цей допис?",
+                connectWalletAlert: "Підключіть гаманець TON для оплати приватного повідомлення (0.01 TON)."
+            },
+            en: {
+                title: "📖 LJ (Live Journal)",
+                placeholder: "Write a poem or thought... ✍️",
+                send: "Publish",
+                reply: "↩️ Reply",
+                privateBtn: "📩 Private",
+                share: "🔗 Share",
+                door: "🚪 Doors",
+                delete: "🗑️ Delete",
+                privateLabel: "🔒 [Private]",
+                replyLabelRef: "↩️ Reply to:",
+                privateReplyLabel: "📩 Private message for:",
+                confirmDelete: "Delete this post?",
+                connectWalletAlert: "Connect your TON wallet to pay for a private message (0.01 TON)."
+            },
+            de: {
+                title: "📖 LJ (Live Journal)",
+                placeholder: "Schreibe ein Gedicht oder einen Gedanken... ✍️",
+                send: "Veröffentlichen",
+                reply: "↩️ Antworten",
+                privateBtn: "📩 Privat",
+                share: "🔗 Teilen",
+                door: "🚪 Tür",
+                delete: "🗑️ Löschen",
+                privateLabel: "🔒 [Privat]",
+                replyLabelRef: "↩️ Antworten auf:",
+                privateReplyLabel: "📩 Private Nachricht für:",
+                confirmDelete: "Diesen Beitrag löschen?",
+                connectWalletAlert: "Verbinden Sie Ihre TON-Geldbörse, um eine private Nachricht zu bezahlen (0.01 TON)."
+            },
+            fr: {
+                title: "📖 LJ (Journal Intime)",
+                placeholder: "Écrivez un poème ou une pensée... ✍️",
+                send: "Publier",
+                reply: "↩️ Répondre",
+                privateBtn: "📩 Privé",
+                share: "🔗 Partager",
+                door: "🚪 Porte",
+                delete: "🗑️ Supprimer",
+                privateLabel: "🔒 [Privé]",
+                replyLabelRef: "↩️ Répondre à:",
+                privateReplyLabel: "📩 Message privé pour:",
+                confirmDelete: "Supprimer cette publication ?",
+                connectWalletAlert: "Connectez votre portefeuille TON pour payer un message privé (0.01 TON)."
+            }
+        };
+
+        let currentLang = 'uk';
+
+        function setLanguage(lang) {
+            currentLang = lang;
+            // Оновлюємо підсвітку кнопок-прапорців
+            document.querySelectorAll('.lang-btn').forEach(btn => {
+                btn.classList.toggle('active', btn.getAttribute('onclick').includes(`'${lang}'`));
+            });
+            // Оновлюємо статичні елементи
+            document.getElementById('app-title').innerText = translations[lang].title;
+            document.getElementById('message-input').placeholder = translations[lang].placeholder;
+            document.getElementById('send-btn').innerText = translations[lang].send;
+            
+            // Перезавантажуємо стрічку, щоб застосувати переклад до кнопок і міток
+            loadMessages();
+        }
 
         const tg = window.Telegram?.WebApp;
         if (tg) {
@@ -318,6 +431,7 @@
 
         async function loadMessages() {
             const container = document.getElementById('chat-container');
+            const t = translations[currentLang];
             
             const { data, error } = await supabaseClient
                 .from('messages')
@@ -370,7 +484,7 @@
 
                     const author = document.createElement('div');
                     author.className = 'username';
-                    author.innerText = msg.is_private ? `🔒 [Приватне] ${authorName}` : authorName;
+                    author.innerText = msg.is_private ? `${t.privateLabel} ${authorName}` : authorName;
 
                     const headerRight = document.createElement('div');
                     headerRight.className = 'header-right';
@@ -381,11 +495,10 @@
 
                     headerRight.appendChild(timeSpan);
 
-                    // Якщо підключений ваш адмін-гаманець, додаємо кнопку видалення
                     if (connectedAddress === OWNER_WALLET) {
                         const deleteBtn = document.createElement('button');
                         deleteBtn.className = 'delete-btn';
-                        deleteBtn.innerText = '🗑️ Видалити';
+                        deleteBtn.innerText = t.delete;
                         deleteBtn.onclick = () => deleteMessage(msg.id);
                         headerRight.appendChild(deleteBtn);
                     }
@@ -445,17 +558,17 @@
 
                     const replyBtn = document.createElement('button');
                     replyBtn.className = 'action-btn';
-                    replyBtn.innerHTML = `↩️ Відповісти`;
+                    replyBtn.innerHTML = t.reply;
                     replyBtn.onclick = () => setReplyTo(msg.id, authorName, false);
 
                     const pmBtn = document.createElement('button');
                     pmBtn.className = 'action-btn pm-btn';
-                    pmBtn.innerHTML = `📩 Приватне`;
+                    pmBtn.innerHTML = t.privateBtn;
                     pmBtn.onclick = () => startPrivateMessage(msg.id, authorName);
 
                     const shareBtn = document.createElement('button');
                     shareBtn.className = 'action-btn';
-                    shareBtn.innerHTML = `🔗 Поділитися`;
+                    shareBtn.innerHTML = t.share;
                     shareBtn.onclick = () => sharePost(msg.id);
 
                     reactions.appendChild(likeBtn);
@@ -467,7 +580,7 @@
                     const secretDoorBtn = document.createElement('a');
                     secretDoorBtn.className = 'action-btn secret-door-btn';
                     secretDoorBtn.href = 'game.html';
-                    secretDoorBtn.innerHTML = `🚪 Двері`;
+                    secretDoorBtn.innerHTML = t.door;
 
                     footer.appendChild(reactions);
                     footer.appendChild(secretDoorBtn);
@@ -482,9 +595,9 @@
             }
         }
 
-        // Функція видалення допису з бази
         async function deleteMessage(id) {
-            if (!confirm("Видалити цей допис?")) return;
+            const t = translations[currentLang];
+            if (!confirm(t.confirmDelete)) return;
 
             const { error } = await supabaseClient
                 .from('messages')
@@ -501,18 +614,20 @@
         function setReplyTo(id, authorName, privateFlag = false) {
             replyingToId = id;
             isPrivateMode = privateFlag;
-            document.getElementById('reply-label').innerText = privateFlag ? "📩 Приватне повідомлення для:" : "↩️ Відповідь на:";
+            const t = translations[currentLang];
+            document.getElementById('reply-label').innerText = privateFlag ? t.privateReplyLabel : t.replyLabelRef;
             document.getElementById('reply-to-author').innerText = authorName;
             document.getElementById('reply-preview-container').classList.add('active');
             document.getElementById('message-input').focus();
         }
 
         async function startPrivateMessage(msgId, authorName) {
+            const t = translations[currentLang];
             if (!tonConnectUI.connected) {
                 if (tg?.showAlert) {
-                    tg.showAlert("Підключіть гаманець TON для оплати приватного повідомлення (0.01 TON).");
+                    tg.showAlert(t.connectWalletAlert);
                 } else {
-                    alert("Підключіть гаманець TON для оплати приватного повідомлення (0.01 TON).");
+                    alert(t.connectWalletAlert);
                 }
                 return;
             }
@@ -544,7 +659,7 @@
                 navigator.clipboard.writeText(currentUrl);
             }
             if (tg?.showAlert) {
-                tg.showAlert(`Посилання на цей допис скопійовано!\n\n${currentUrl}`);
+                tg.showAlert(`Посилання скопійовано!\n\n${currentUrl}`);
             } else {
                 alert(`Посилання скопійовано: ${currentUrl}`);
             }
@@ -601,7 +716,7 @@
             await loadMessages();
         }
 
-        async function updateReaction(id, field, newValue) {
+        async function updateReaction(id, field,newValue) {
             const updateObj = {};
             updateObj[field] = newValue;
             const { error } = await supabaseClient

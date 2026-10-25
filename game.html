@@ -34,7 +34,7 @@
         /* Перемикач ігор */
         .game-switcher {
             display: flex;
-            gap: 10px;
+            gap: 6px;
             width: 100%;
             max-width: 400px;
             margin-bottom: 20px;
@@ -44,10 +44,10 @@
             background: #1e1e1e;
             border: 1px solid #333;
             color: #aaa;
-            padding: 12px;
+            padding: 10px 4px;
             border-radius: 8px;
             cursor: pointer;
-            font-size: 13px;
+            font-size: 11px;
             font-weight: bold;
             text-align: center;
             transition: all 0.2s;
@@ -63,7 +63,7 @@
             width: 100%;
             max-width: 360px;
             background: #1e1e1e;
-            padding: 20px;
+            padding: 15px;
             border-radius: 12px;
             border: 1px solid #333;
             text-align: center;
@@ -73,27 +73,27 @@
             display: block;
         }
         .status-text {
-            font-size: 14px;
+            font-size: 13px;
             font-weight: bold;
-            margin-bottom: 15px;
+            margin-bottom: 10px;
             color: #64b5f6;
             min-height: 20px;
         }
-        /* Хрестики-нулики */
+        /* Ігрові сітки */
         .board {
             display: grid;
             grid-template-columns: repeat(3, 1fr);
-            gap: 8px;
-            margin-bottom: 15px;
+            gap: 6px;
+            margin-bottom: 10px;
         }
         .cell {
             background: #252830;
             aspect-ratio: 1;
-            border-radius: 8px;
+            border-radius: 6px;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 28px;
+            font-size: 22px;
             font-weight: bold;
             cursor: pointer;
             border: 1px solid #333;
@@ -105,28 +105,62 @@
         .cell.x { color: #ff5252; }
         .cell.o { color: #64b5f6; }
         
+        /* Морський бій (два поля) */
+        .battleship-container {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+        .fleet-box {
+            background: #161616;
+            padding: 8px;
+            border-radius: 8px;
+            border: 1px solid #2a2a2a;
+        }
+        .fleet-title {
+            font-size: 11px;
+            color: #888;
+            margin-bottom: 5px;
+        }
+
         /* Кнопки */
         .btn {
             background-color: #007bff;
             color: white;
             border: none;
-            padding: 10px 20px;
+            padding: 8px 16px;
             border-radius: 8px;
             cursor: pointer;
             font-weight: bold;
-            font-size: 14px;
+            font-size: 13px;
             margin-top: 5px;
         }
         .btn:hover {
             background-color: #0056b3;
         }
-        /* Повернення */
+        
+        /* Камінь-ножиці */
+        .rps-choices {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin: 15px 0;
+        }
+        .rps-btn {
+            background: #252830;
+            border: 1px solid #444;
+            font-size: 26px;
+            padding: 12px;
+            border-radius: 10px;
+            cursor: pointer;
+        }
+        
         .back-link {
             display: inline-block;
-            margin-top: 25px;
+            margin-top: 20px;
             color: #ffb74d;
             text-decoration: none;
-            font-size: 13px;
+            font-size: 12px;
             font-weight: bold;
         }
         .back-link:hover {
@@ -141,10 +175,11 @@
         <div style="font-size: 11px; color: #888;">ЖЖ клуб</div>
     </div>
 
-    <!-- Перемикач на 2 оригінальні гри -->
+    <!-- Перемикач ігор -->
     <div class="game-switcher">
-        <div class="switch-btn active" onclick="switchGame(0)">❌ Хрестики-нулики</div>
+        <div class="switch-btn active" onclick="switchGame(0)">❌ Хрестики</div>
         <div class="switch-btn" onclick="switchGame(1)">🚢 Морський бій</div>
+        <div class="switch-btn" onclick="switchGame(2)">✂️ Камінь-Ножиці</div>
     </div>
 
     <!-- Гра 1: Хрестики-нулики -->
@@ -164,23 +199,54 @@
         <button class="btn" onclick="resetTTT()">Нова гра</button>
     </div>
 
-    <!-- Гра 2: Морський бій (Оригінальний) -->
+    <!-- Гра 2: Морський бій (Два поля зi звуками) -->
     <div id="game-1" class="game-card">
-        <div class="status-text">🚢 Морський бій (Дуель)</div>
-        <p style="font-size: 13px; color: #b0bec5; line-height: 1.4;">Суперник сховав свої кораблі у квадраті 3х3. Знайдіть їх пострілом!</p>
-        <div class="board" id="battleship-board" style="margin-top: 15px;">
-            <div class="cell" onclick="shootShip(0)">?</div>
-            <div class="cell" onclick="shootShip(1)">?</div>
-            <div class="cell" onclick="shootShip(2)">?</div>
-            <div class="cell" onclick="shootShip(3)">?</div>
-            <div class="cell" onclick="shootShip(4)">?</div>
-            <div class="cell" onclick="shootShip(5)">?</div>
-            <div class="cell" onclick="shootShip(6)">?</div>
-            <div class="cell" onclick="shootShip(7)">?</div>
-            <div class="cell" onclick="shootShip(8)">?</div>
+        <div class="status-text" id="bs-status">Ваш хід! Стріляйте по ворогу</div>
+        <div class="battleship-container">
+            <!-- Поле суперника для стрільби -->
+            <div class="fleet-box">
+                <div class="fleet-title">🎯 Ворожа акваторія</div>
+                <div class="board" id="enemy-board" style="margin-bottom: 0;">
+                    <div class="cell" onclick="playerShoot(0)">?</div>
+                    <div class="cell" onclick="playerShoot(1)">?</div>
+                    <div class="cell" onclick="playerShoot(2)">?</div>
+                    <div class="cell" onclick="playerShoot(3)">?</div>
+                    <div class="cell" onclick="playerShoot(4)">?</div>
+                    <div class="cell" onclick="playerShoot(5)">?</div>
+                    <div class="cell" onclick="playerShoot(6)">?</div>
+                    <div class="cell" onclick="playerShoot(7)">?</div>
+                    <div class="cell" onclick="playerShoot(8)">?</div>
+                </div>
+            </div>
+            <!-- Поле власних кораблів -->
+            <div class="fleet-box">
+                <div class="fleet-title">⚓ Ваші кораблі</div>
+                <div class="board" id="player-board" style="margin-bottom: 0;">
+                    <div class="cell">🚢</div>
+                    <div class="cell">~</div>
+                    <div class="cell">~</div>
+                    <div class="cell">~</div>
+                    <div class="cell">🚢</div>
+                    <div class="cell">~</div>
+                    <div class="cell">~</div>
+                    <div class="cell">~</div>
+                    <div class="cell">~</div>
+                </div>
+            </div>
         </div>
-        <div class="status-text" id="bs-status" style="margin-top: 10px; font-size: 12px;">Зробіть постріл!</div>
-        <button class="btn" onclick="resetBattleship()">Скинути поле</button>
+        <button class="btn" onclick="resetBattleship()" style="margin-top: 10px;">Новий бій</button>
+    </div>
+
+    <!-- Гра 3: Камінь, ножиці, папір -->
+    <div id="game-2" class="game-card">
+        <div class="status-text">✂️ Камінь, ножиці, папір</div>
+        <div style="font-size: 12px; color: #888; margin-bottom: 10px;">Рахунок: Ви <span id="p-score">0</span> : <span id="b-score">0</span> Бот</div>
+        <div id="rps-result" style="font-size: 13px; margin-bottom: 10px; color: #fff;">Оберіть жест:</div>
+        <div class="rps-choices">
+            <button class="rps-btn" onclick="playRPS('rock')">✊</button>
+            <button class="rps-btn" onclick="playRPS('paper')">✋</button>
+            <button class="rps-btn" onclick="playRPS('scissors')">✌️</button>
+        </div>
     </div>
 
     <a href="index.html" class="back-link">← Повернутися до Живого журналу</a>
@@ -189,155 +255,154 @@
         const tg = window.Telegram?.WebApp;
         if (tg) { tg.expand(); tg.ready(); }
 
+        // Аудіо ефекти (синтез звуків без external файлів)
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        function playSound(type) {
+            if (!audioCtx) return;
+            if (audioCtx.state === 'suspended') audioCtx.resume();
+            
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+
+            if (type === 'shot') {
+                osc.type = 'sawtooth';
+                osc.frequency.setValueAtTime(300, audioCtx.currentTime);
+                osc.frequency.exponentialRampToValueAtTime(80, audioCtx.currentTime + 0.15);
+                gain.gain.setValueAtTime(0.2, audioCtx.currentTime);
+                gain.gain.linearRampToValueAtTime(0.01, audioCtx.currentTime + 0.15);
+                osc.start();
+                osc.stop(audioCtx.currentTime + 0.15);
+            } else if (type === 'hit') {
+                osc.type = 'square';
+                osc.frequency.setValueAtTime(600, audioCtx.currentTime);
+                osc.frequency.setValueAtTime(200, audioCtx.currentTime + 0.1);
+                gain.gain.setValueAtTime(0.3, audioCtx.currentTime);
+                gain.gain.linearRampToValueAtTime(0.01, audioCtx.currentTime + 0.3);
+                osc.start();
+                osc.stop(audioCtx.currentTime + 0.3);
+            } else if (type === 'miss') {
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(150, audioCtx.currentTime);
+                osc.frequency.linearRampToValueAtTime(80, audioCtx.currentTime + 0.2);
+                gain.gain.setValueAtTime(0.15, audioCtx.currentTime);
+                gain.gain.linearRampToValueAtTime(0.01, audioCtx.currentTime + 0.2);
+                osc.start();
+                osc.stop(audioCtx.currentTime + 0.2);
+            }
+        }
+
         function switchGame(index) {
             const cards = document.querySelectorAll('.game-card');
             const btns = document.querySelectorAll('.switch-btn');
-            
-            cards.forEach((card, i) => {
-                card.classList.toggle('active', i === index);
-            });
-            btns.forEach((btn, i) => {
-                btn.classList.toggle('active', i === index);
-            });
+            cards.forEach((c, i) => c.classList.toggle('active', i === index));
+            btns.forEach((b, i) => b.classList.toggle('active', i === index));
         }
 
-        // --- ХРЕСТИКИ-НУЛИКИ ---
+        // Хрестики-нулики
         let tttBoard = ['', '', '', '', '', '', '', '', ''];
-        let tttGameActive = true;
-        let tttPlayerTurn = true;
+        let tttActive = true, tttTurn = true;
 
-        function makeMove(index) {
-            if (!tttGameActive || !tttPlayerTurn || tttBoard[index] !== '') return;
-
-            tttBoard[index] = 'X';
-            updateTTTBoard();
-
-            if (checkWin('X')) {
-                document.getElementById('ttt-status').innerText = 'Ви перемогли! 🎉';
-                tttGameActive = false;
-                return;
-            }
-            if (tttBoard.every(cell => cell !== '')) {
-                document.getElementById('ttt-status').innerText = 'Нічия! 🤝';
-                tttGameActive = false;
-                return;
-            }
-
-            tttPlayerTurn = false;
+        function makeMove(i) {
+            if (!tttActive || !tttTurn || tttBoard[i] !== '') return;
+            tttBoard[i] = 'X';
+            playSound('shot');
+            updateTTT();
+            if (checkWin('X')) { document.getElementById('ttt-status').innerText = 'Ви перемогли! 🎉'; tttActive = false; return; }
+            if (tttBoard.every(c => c !== '')) { document.getElementById('ttt-status').innerText = 'Нічия! 🤝'; tttActive = false; return; }
+            tttTurn = false;
             document.getElementById('ttt-status').innerText = 'Хід бота... 🤖';
-
-            setTimeout(botMove, 500);
+            setTimeout(botTTT, 500);
         }
 
-        function findBestMove() {
-            for (let i = 0; i < 9; i++) {
-                if (tttBoard[i] === '') {
-                    tttBoard[i] = 'O';
-                    if (checkWin('O')) {
-                        tttBoard[i] = '';
-                        return i;
-                    }
-                    tttBoard[i] = '';
-                }
+        function botTTT() {
+            if (!tttActive) return;
+            let empty = tttBoard.map((v, idx) => v === '' ? idx : null).filter(v => v !== null);
+            if (empty.length > 0) {
+                let r = empty[Math.floor(Math.random() * empty.length)];
+                tttBoard[r] = 'O';
+                playSound('hit');
             }
-            for (let i = 0; i < 9; i++) {
-                if (tttBoard[i] === '') {
-                    tttBoard[i] = 'X';
-                    if (checkWin('X')) {
-                        tttBoard[i] = '';
-                        return i;
-                    }
-                    tttBoard[i] = '';
-                }
-            }
-            if (tttBoard[4] === '') return 4;
-            let emptyCells = tttBoard.map((val, idx) => val === '' ? idx : null).filter(val => val !== null);
-            return emptyCells.length > 0 ? emptyCells[Math.floor(Math.random() * emptyCells.length)] : -1;
-        }
-
-        function botMove() {
-            if (!tttGameActive) return;
-            let bestIdx = findBestMove();
-            if (bestIdx !== -1) {
-                tttBoard[bestIdx] = 'O';
-            }
-            updateTTTBoard();
-
-            if (checkWin('O')) {
-                document.getElementById('ttt-status').innerText = 'Переміг Бот! 🤖';
-                tttGameActive = false;
-                return;
-            }
-            if (tttBoard.every(cell => cell !== '')) {
-                document.getElementById('ttt-status').innerText = 'Нічия! 🤝';
-                tttGameActive = false;
-                return;
-            }
-
-            tttPlayerTurn = true;
+            updateTTT();
+            if (checkWin('O')) { document.getElementById('ttt-status').innerText = 'Переміг Бот! 🤖'; tttActive = false; return; }
+            tttTurn = true;
             document.getElementById('ttt-status').innerText = 'Ваш хід (X)';
         }
 
-        function updateTTTBoard() {
+        function updateTTT() {
             const cells = document.getElementById('ttt-board').children;
-            for (let i = 0; i < cells.length; i++) {
+            for(let i=0; i<9; i++) {
                 cells[i].innerText = tttBoard[i];
-                cells[i].className = 'cell ' + (tttBoard[i] === 'X' ? 'x' : tttBoard[i] === 'O' ? 'o' : '');
+                cells[i].className = 'cell ' + (tttBoard[i] === 'X' ? 'x' : 'o');
             }
         }
-
-        function checkWin(player) {
-            const wins = [
-                [0,1,2], [3,4,5], [6,7,8],
-                [0,3,6], [1,4,7], [2,5,8],
-                [0,4,8], [2,4,6]
-            ];
-            return wins.some(comb => comb.every(idx => tttBoard[idx] === player));
+        function checkWin(p) {
+            const w = [[0,1,2],[3,4,5],[6,7,8],[0,3,6],[1,4,7],[2,5,8],[0,4,8],[2,4,6]];
+            return w.some(c => c.every(i => tttBoard[i] === p));
         }
-
         function resetTTT() {
             tttBoard = ['', '', '', '', '', '', '', '', ''];
-            tttGameActive = true;
-            tttPlayerTurn = true;
+            tttActive = true; tttTurn = true;
             document.getElementById('ttt-status').innerText = 'Ваш хід (X)';
-            updateTTTBoard();
+            updateTTT();
         }
 
-        // --- МОРСЬКИЙ БІЙ ---
-        let shipPosition = Math.floor(Math.random() * 9);
-        let bsAttempts = 3;
+        // Морський бій (два поля)
+        let enemyShips = [Math.floor(Math.random()*9), Math.floor(Math.random()*9)];
+        let hitsCount = 0;
 
-        function shootShip(index) {
-            const cells = document.getElementById('battleship-board').children;
-            if (bsAttempts <= 0 || cells[index].innerText === '💥' || cells[index].innerText === '💧') return;
+        function playerShoot(i) {
+            const cells = document.getElementById('enemy-board').children;
+            if (cells[i].innerText === '💥' || cells[i].innerText === '💧') return;
 
-            if (index === shipPosition) {
-                cells[index].innerText = '💥';
-                cells[index].style.background = '#e53935';
-                document.getElementById('bs-status').innerText = 'Потоплено! Ви виграли бій! 🎉';
-                bsAttempts = 0;
-            } else {
-                cells[index].innerText = '💧';
-                cells[index].style.background = '#1e88e5';
-                bsAttempts--;
-                if (bsAttempts > 0) {
-                    document.getElementById('bs-status').innerText = `Мимо! Залишилось спроб: ${bsAttempts}`;
+            playSound('shot');
+            if (enemyShips.includes(i)) {
+                cells[i].innerText = '💥';
+                cells[i].style.background = '#e53935';
+                playSound('hit');
+                hitsCount++;
+                if (hitsCount >= enemyShips.length) {
+                    document.getElementById('bs-status').innerText = 'Перемога! Всі ворожі кораблі потоплені! 🎉';
                 } else {
-                    document.getElementById('bs-status').innerText = `Бій програно! Корабель був тут 💥`;
-                    cells[shipPosition].innerText = '💥';
+                    document.getElementById('bs-status').innerText = 'Влучання! Добивайте ворога!';
                 }
+            } else {
+                cells[i].innerText = '💧';
+                cells[i].style.background = '#1e88e5';
+                playSound('miss');
+                document.getElementById('bs-status').innerText = 'Мимо! Ворог контратакує...';
             }
         }
 
         function resetBattleship() {
-            shipPosition = Math.floor(Math.random() * 9);
-            bsAttempts = 3;
-            const cells = document.getElementById('battleship-board').children;
-            for (let cell of cells) {
-                cell.innerText = '?';
-                cell.style.background = '#252830';
+            enemyShips = [Math.floor(Math.random()*9), Math.floor(Math.random()*9)];
+            hitsCount = 0;
+            const cells = document.getElementById('enemy-board').children;
+            for(let c of cells) {
+                c.innerText = '?';
+                c.style.background = '#252830';
             }
-            document.getElementById('bs-status').innerText = 'Зробіть постріл!';
+            document.getElementById('bs-status').innerText = 'Ваш хід! Стріляйте по ворогу';
+        }
+
+        // Камінь, ножиці, папір
+        let pS = 0, bS = 0;
+        const emojis = { rock: '✊', paper: '✋', scissors: '✌️' };
+        function playRPS(choice) {
+            playSound('shot');
+            const arr = ['rock', 'paper', 'scissors'];
+            const bot = arr[Math.floor(Math.random()*3)];
+            let res = '';
+            if (choice === bot) res = `Нічия (${emojis[choice]})`;
+            else if ((choice==='rock'&&bot==='scissors')||(choice==='paper'&&bot==='rock')||(choice==='scissors'&&bot==='paper')) {
+                pS++; res = `Ви виграли! (${emojis[choice]} б'є ${emojis[bot]})`;
+            } else {
+                bS++; res = `Бот виграв! (${emojis[bot]} б'є ${emojis[choice]})`;
+            }
+            document.getElementById('p-score').innerText = pS;
+            document.getElementById('b-score').innerText = bS;
+            document.getElementById('rps-result').innerText = res;
         }
     </script>
 </body>

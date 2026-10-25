@@ -60,6 +60,7 @@
             border: 1px solid #2a2a2a;
             display: flex;
             gap: 10px;
+            position: relative;
             transition: border-color 0.3s;
         }
         .message.private-msg {
@@ -99,9 +100,25 @@
             font-weight: bold;
             color: #64b5f6;
         }
+        .header-right {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
         .msg-time {
             font-size: 10px;
             color: #888;
+        }
+        .delete-btn {
+            background: none;
+            border: none;
+            color: #ff5252;
+            cursor: pointer;
+            font-size: 12px;
+            padding: 0;
+        }
+        .delete-btn:hover {
+            text-decoration: underline;
         }
         .reply-quote {
             background: rgba(100, 181, 246, 0.1);
@@ -301,10 +318,11 @@
 
         async function loadMessages() {
             const container = document.getElementById('chat-container');
+            
             const { data, error } = await supabaseClient
                 .from('messages')
                 .select('*')
-                .order('id', { ascending: true });
+                .order('id', { ascending: false });
 
             if (error) return;
 
@@ -354,12 +372,26 @@
                     author.className = 'username';
                     author.innerText = msg.is_private ? `🔒 [Приватне] ${authorName}` : authorName;
 
+                    const headerRight = document.createElement('div');
+                    headerRight.className = 'header-right';
+
                     const timeSpan = document.createElement('div');
                     timeSpan.className = 'msg-time';
                     timeSpan.innerText = formatTime(msg.created_at);
 
+                    headerRight.appendChild(timeSpan);
+
+                    // Якщо підключений ваш адмін-гаманець, додаємо кнопку видалення
+                    if (connectedAddress === OWNER_WALLET) {
+                        const deleteBtn = document.createElement('button');
+                        deleteBtn.className = 'delete-btn';
+                        deleteBtn.innerText = '🗑️ Видалити';
+                        deleteBtn.onclick = () => deleteMessage(msg.id);
+                        headerRight.appendChild(deleteBtn);
+                    }
+
                     headerRow.appendChild(author);
-                    headerRow.appendChild(timeSpan);
+                    headerRow.appendChild(headerRight);
 
                     content.appendChild(headerRow);
 
@@ -432,7 +464,6 @@
                     reactions.appendChild(pmBtn);
                     reactions.appendChild(shareBtn);
 
-                    // Звичайні вільні «двері» — пряме посилання на game.html
                     const secretDoorBtn = document.createElement('a');
                     secretDoorBtn.className = 'action-btn secret-door-btn';
                     secretDoorBtn.href = 'game.html';
@@ -451,6 +482,22 @@
             }
         }
 
+        // Функція видалення допису з бази
+        async function deleteMessage(id) {
+            if (!confirm("Видалити цей допис?")) return;
+
+            const { error } = await supabaseClient
+                .from('messages')
+                .delete()
+                .eq('id', id);
+
+            if (error) {
+                alert("Помилка видалення: " + error.message);
+            } else {
+                loadMessages();
+            }
+        }
+
         function setReplyTo(id, authorName, privateFlag = false) {
             replyingToId = id;
             isPrivateMode = privateFlag;
@@ -460,7 +507,6 @@
             document.getElementById('message-input').focus();
         }
 
-        // ПОВЕРНУТО: оплата 0.01 TON для відправки приватного повідомлення
         async function startPrivateMessage(msgId, authorName) {
             if (!tonConnectUI.connected) {
                 if (tg?.showAlert) {
@@ -515,7 +561,7 @@
                 }
             } else {
                 const container = document.getElementById('chat-container');
-                container.scrollTop = container.scrollHeight;
+                container.scrollTop = 0;
             }
         }
 

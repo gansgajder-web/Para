@@ -8,6 +8,8 @@
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <!-- TON Connect UI SDK -->
     <script src="https://unpkg.com/@tonconnect/ui@latest/dist/tonconnect-ui.min.js"></script>
+    <!-- Supabase JS -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
         body {
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
@@ -41,6 +43,28 @@
         #ton-connect-btn {
             transform: scale(0.8);
             transform-origin: right center;
+        }
+        /* Блок очок та рекорду */
+        .score-board {
+            width: 100%;
+            max-width: 420px;
+            background: #1f1f1f;
+            border: 1px solid #333;
+            padding: 10px 15px;
+            border-radius: 10px;
+            display: flex;
+            justify-content: space-around;
+            margin-bottom: 12px;
+            box-sizing: border-box;
+            font-size: 13px;
+        }
+        .score-item {
+            text-align: center;
+        }
+        .score-val {
+            font-weight: bold;
+            color: #ffd54f;
+            font-size: 16px;
         }
         /* Перемикач ігор */
         .game-switcher {
@@ -166,6 +190,13 @@
         .btn:hover {
             background-color: #0056b3;
         }
+        .save-btn {
+            background: #28a745;
+            margin-top: 8px;
+        }
+        .save-btn:hover {
+            background: #218838;
+        }
         
         /* Камінь-ножиці */
         .rps-choices {
@@ -182,10 +213,56 @@
             border-radius: 10px;
             cursor: pointer;
         }
+
+        /* Таблиця лідерів */
+        .leaderboard {
+            width: 100%;
+            max-width: 420px;
+            background: #1a1a1a;
+            border: 1px solid #333;
+            border-radius: 12px;
+            padding: 12px;
+            box-sizing: border-box;
+            margin-top: 15px;
+        }
+        .leaderboard h3 {
+            margin: 0 0 10px 0;
+            text-align: center;
+            color: #ffd54f;
+            font-size: 14px;
+            border-bottom: 1px solid #333;
+            padding-bottom: 6px;
+        }
+        .leader-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 6px 0;
+            border-bottom: 1px solid #2a2a2a;
+            font-size: 12px;
+        }
+        .leader-item:last-child {
+            border-bottom: none;
+        }
+        .rank {
+            font-weight: bold;
+            color: #64b5f6;
+            width: 25px;
+        }
+        .name {
+            flex: 1;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            padding-right: 10px;
+        }
+        .points {
+            font-weight: bold;
+            color: #ffd54f;
+        }
         
         .back-link {
             display: inline-block;
-            margin-top: 15px;
+            margin: 15px 0;
             color: #ffb74d;
             text-decoration: none;
             font-size: 12px;
@@ -205,6 +282,18 @@
         </div>
     </div>
 
+    <!-- Табло очок -->
+    <div class="score-board">
+        <div class="score-item">
+            <div>Бали за сесію:</div>
+            <div id="current-score" class="score-val">0</div>
+        </div>
+        <div class="score-item">
+            <div>Ваш рекорд:</div>
+            <div id="best-score" class="score-val">0</div>
+        </div>
+    </div>
+
     <!-- Перемикач ігор -->
     <div class="game-switcher">
         <div class="switch-btn active" onclick="switchGame(0)">❌ Хрестики</div>
@@ -214,7 +303,7 @@
 
     <!-- Гра 1: Хрестики-нулики (Розумний бот) -->
     <div id="game-0" class="game-card active">
-        <div class="status-text" id="ttt-status">Ваш хід (X)</div>
+        <div class="status-text" id="ttt-status">Ваш хід (X) (+5 балів за перемогу)</div>
         <div class="ttt-board" id="ttt-board">
             <div class="ttt-cell" onclick="makeMove(0)"></div>
             <div class="ttt-cell" onclick="makeMove(1)"></div>
@@ -235,7 +324,7 @@
         <div class="battleship-container">
             <!-- Вороже поле -->
             <div class="fleet-box" id="enemy-box" style="display:none;">
-                <div class="fleet-title">🎯 Ворожа акваторія</div>
+                <div class="fleet-title">🎯 Ворожа акваторія (+10 балів за перемогу)</div>
                 <div class="bs-board" id="enemy-board"></div>
             </div>
             <!-- Поле гравця для розстановки -->
@@ -250,7 +339,7 @@
 
     <!-- Гра 3: Камінь, ножиці, папір -->
     <div id="game-2" class="game-card">
-        <div class="status-text">✂️ Камінь, ножиці, папір</div>
+        <div class="status-text">✂️ Камінь, ножиці, папір (+2 бали за перемогу)</div>
         <div style="font-size: 12px; color: #888; margin-bottom: 10px;">Рахунок: Ви <span id="p-score">0</span> : <span id="b-score">0</span> Бот</div>
         <div id="rps-result" style="font-size: 13px; margin-bottom: 10px; color: #fff;">Оберіть жест:</div>
         <div class="rps-choices">
@@ -260,11 +349,115 @@
         </div>
     </div>
 
+    <!-- Кнопка збереження результату -->
+    <div style="width: 100%; max-width: 420px; text-align: center;">
+        <button class="btn save-btn" onclick="saveScoreToDB()" style="width: 100%;">💾 Зберегти бали в загальний Рейтинг</button>
+    </div>
+
+    <!-- Таблиця лідерів -->
+    <div class="leaderboard">
+        <h3>🏆 ТОП-10 ГРАВЦІВ РЕЙТИНГУ</h3>
+        <div id="leaderboard-list">
+            <div style="text-align: center; color: #888; font-size: 11px;">Завантаження рейтингу...</div>
+        </div>
+    </div>
+
     <a href="index.html" class="back-link">← Повернутися до Живого журналу</a>
 
     <script>
+        const SUPABASE_URL = 'https://hsboeykzidkilprcpyey.supabase.co';
+        const SUPABASE_KEY = 'sb_publishable_itYl4wIpMrcdLLHyeaEoXw_7ajw1483';
+        const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
         const tg = window.Telegram?.WebApp;
         if (tg) { tg.expand(); tg.ready(); }
+
+        const tgUser = tg?.initDataUnsafe?.user;
+        const playerName = tgUser ? (tgUser.first_name + (tgUser.last_name ? ' ' + tgUser.last_name : '')) : 'Гість';
+
+        let currentScore = 0;
+        let bestScore = parseInt(localStorage.getItem('jj_game_best_score') || '0');
+        document.getElementById('best-score').innerText = bestScore;
+
+        function addPoints(pts) {
+            currentScore += pts;
+            document.getElementById('current-score').innerText = currentScore;
+            if (currentScore > bestScore) {
+                bestScore = currentScore;
+                localStorage.setItem('jj_game_best_score', bestScore);
+                document.getElementById('best-score').innerText = bestScore;
+            }
+        }
+
+        async function saveScoreToDB() {
+            if (currentScore === 0) {
+                alert("Наберіть спочатку бали в іграх!");
+                return;
+            }
+
+            try {
+                const { data: existing } = await supabaseClient
+                    .from('game_scores')
+                    .select('*')
+                    .eq('player_name', playerName)
+                    .single();
+
+                if (existing) {
+                    if (currentScore > existing.score) {
+                        await supabaseClient
+                            .from('game_scores')
+                            .update({ score: currentScore })
+                            .eq('id', existing.id);
+                        alert("🎉 Ваш рекорд успішно оновлено в загальному рейтингу!");
+                    } else {
+                        alert(`Поточні бали (${currentScore}) менші або рівні вашому рекорду в базі (${existing.score}).`);
+                    }
+                } else {
+                    await supabaseClient
+                        .from('game_scores')
+                        .insert([{ player_name: playerName, score: currentScore }]);
+                    alert("🚀 Ваш результат успішно додано до таблиці лідерів!");
+                }
+                loadLeaderboard();
+            } catch (err) {
+                console.error(err);
+                alert("Помилка збереження результату.");
+            }
+        }
+
+        async function loadLeaderboard() {
+            const listContainer = document.getElementById('leaderboard-list');
+            const { data, error } = await supabaseClient
+                .from('game_scores')
+                .select('*')
+                .order('score', { ascending: false })
+                .limit(10);
+
+            if (error || !data || data.length === 0) {
+                listContainer.innerHTML = '<div style="text-align: center; color: #888; font-size: 11px;">Поки немає рекордів. Будьте першим!</div>';
+                return;
+            }
+
+            listContainer.innerHTML = '';
+            data.forEach((item, index) => {
+                const div = document.createElement('div');
+                div.className = 'leader-item';
+                
+                let medal = `${index + 1}.`;
+                if (index === 0) medal = '🥇';
+                if (index === 1) medal = '🥈';
+                if (index === 2) medal = '🥉';
+
+                div.innerHTML = `
+                    <span class="rank">${medal}</span>
+                    <span class="name">${item.player_name}</span>
+                    <span class="points">${item.score} балів</span>
+                `;
+                listContainer.appendChild(div);
+            });
+        }
+
+        loadLeaderboard();
 
         const tonConnectUI = new TON_CONNECT_UI.TonConnectUI({
             manifestUrl: 'https://gansgajder-web.github.io/Para/tonconnect-manifest.json',
@@ -330,7 +523,8 @@
             updateTTT();
 
             if (checkWin('X')) { 
-                document.getElementById('ttt-status').innerText = 'Ви перемогли! 🎉'; 
+                document.getElementById('ttt-status').innerText = 'Ви перемогли! (+5 балів) 🎉'; 
+                addPoints(5);
                 tttActive = false; 
                 return; 
             }
@@ -352,7 +546,6 @@
                 [0,4,8],[2,4,6]
             ];
 
-            // 1. Спроба перемогти бота (якщо 2 нулики в ряд і є 3-я вільна)
             for (let combo of winCombos) {
                 let oCount = combo.filter(idx => tttBoard[idx] === 'O').length;
                 let emptyCount = combo.filter(idx => tttBoard[idx] === '').length;
@@ -361,7 +554,6 @@
                 }
             }
 
-            // 2. БЛОКУВАННЯ ГРАВЦЯ (якщо у гравця 2 хрестики в ряд — ОБОВ'ЯЗКОВО БЛОКУЄМО!)
             for (let combo of winCombos) {
                 let xCount = combo.filter(idx => tttBoard[idx] === 'X').length;
                 let emptyCount = combo.filter(idx => tttBoard[idx] === '').length;
@@ -370,16 +562,13 @@
                 }
             }
 
-            // 3. Заняти центр, якщо вільний
             if (tttBoard[4] === '') return 4;
 
-            // 4. Заняти кути
             const corners = [0, 2, 6, 8].filter(idx => tttBoard[idx] === '');
             if (corners.length > 0) {
                 return corners[Math.floor(Math.random() * corners.length)];
             }
 
-            // 5. Будь-яка вільна клітинка
             let empty = tttBoard.map((v, idx) => v === '' ? idx : null).filter(v => v !== null);
             return empty[Math.floor(Math.random() * empty.length)];
         }
@@ -502,7 +691,8 @@
                 playSound('hit');
                 playerHits++;
                 if (playerHits === 5) {
-                    document.getElementById('bs-status').innerText = 'Перемога! Ви знищили всю ворожу флотилію! 🎉';
+                    document.getElementById('bs-status').innerText = 'Перемога! Ви знищили всю ворожу флотилію! (+10 балів) 🎉';
+                    addPoints(10);
                     gameStage = 'over';
                     return;
                 } else {
@@ -568,11 +758,15 @@
             const arr = ['rock', 'paper', 'scissors'];
             const bot = arr[Math.floor(Math.random()*3)];
             let res = '';
-            if (choice === bot) res = `Нічия (${emojis[choice]})`;
-            else if ((choice==='rock'&&bot==='scissors')||(choice==='paper'&&bot==='rock')||(choice==='scissors'&&bot==='paper')) {
-                pS++; res = `Ви виграли! (${emojis[choice]} б'є ${emojis[bot]})`;
+            if (choice === bot) {
+                res = `Нічия (${emojis[choice]})`;
+            } else if ((choice==='rock'&&bot==='scissors')||(choice==='paper'&&bot==='rock')||(choice==='scissors'&&bot==='paper')) {
+                pS++; 
+                res = `Ви виграли! (+2 бали) (${emojis[choice]} б'є ${emojis[bot]})`;
+                addPoints(2);
             } else {
-                bS++; res = `Бот виграв! (${emojis[bot]} б'є ${emojis[choice]})`;
+                bS++; 
+                res = `Бот виграв! (${emojis[bot]} б'є ${emojis[choice]})`;
             }
             document.getElementById('p-score').innerText = pS;
             document.getElementById('b-score').innerText = bS;

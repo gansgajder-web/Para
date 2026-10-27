@@ -69,7 +69,7 @@
         /* Перемикач ігор */
         .game-switcher {
             display: flex;
-            gap: 6px;
+            gap: 4px;
             width: 100%;
             max-width: 420px;
             margin-bottom: 15px;
@@ -82,7 +82,7 @@
             padding: 8px 2px;
             border-radius: 8px;
             cursor: pointer;
-            font-size: 11px;
+            font-size: 10px;
             font-weight: bold;
             text-align: center;
             transition: all 0.2s;
@@ -173,6 +173,23 @@
             font-size: 10px;
             cursor: pointer;
             border: 1px solid #222;
+        }
+
+        /* Стилі для Plinko */
+        .plinko-canvas-container {
+            position: relative;
+            width: 100%;
+            display: flex;
+            justify-content: center;
+            background: #161616;
+            border-radius: 8px;
+            border: 1px solid #333;
+            overflow: hidden;
+            margin-bottom: 10px;
+        }
+        canvas {
+            display: block;
+            background: #161616;
         }
 
         /* Загальні кнопки */
@@ -297,11 +314,12 @@
     <!-- Перемикач ігор -->
     <div class="game-switcher">
         <div class="switch-btn active" onclick="switchGame(0)">❌ Хрестики</div>
-        <div class="switch-btn" onclick="switchGame(1)">🚢 Морський бій</div>
-        <div class="switch-btn" onclick="switchGame(2)">✂️ Камінь-Ножиці</div>
+        <div class="switch-btn" onclick="switchGame(1)">🚢 Морський</div>
+        <div class="switch-btn" onclick="switchGame(2)">✂️ Камінь</div>
+        <div class="switch-btn" onclick="switchGame(3)">🐸 Plinko</div>
     </div>
 
-    <!-- Гра 1: Хрестики-нулики (Розумний бот) -->
+    <!-- Гра 1: Хрестики-нулики -->
     <div id="game-0" class="game-card active">
         <div class="status-text" id="ttt-status">Ваш хід (X) (+5 балів за перемогу)</div>
         <div class="ttt-board" id="ttt-board">
@@ -322,12 +340,10 @@
     <div id="game-1" class="game-card">
         <div class="status-text" id="bs-status">Розставте свої кораблі (виберіть 5 клітинок)</div>
         <div class="battleship-container">
-            <!-- Вороже поле -->
             <div class="fleet-box" id="enemy-box" style="display:none;">
                 <div class="fleet-title">🎯 Ворожа акваторія (+10 балів за перемогу)</div>
                 <div class="bs-board" id="enemy-board"></div>
             </div>
-            <!-- Поле гравця для розстановки -->
             <div class="fleet-box">
                 <div class="fleet-title" id="player-box-title">⚓ Ваша акваторія (натисніть, щоб сховати корабель)</div>
                 <div class="bs-board" id="player-board"></div>
@@ -347,6 +363,15 @@
             <button class="rps-btn" onclick="playRPS('paper')">✋</button>
             <button class="rps-btn" onclick="playRPS('scissors')">✌️</button>
         </div>
+    </div>
+
+    <!-- Гра 4: Plinko (Жабка / Піраміда) -->
+    <div id="game-3" class="game-card">
+        <div class="status-text" id="plinko-status">Киньте жабку через піраміду! 🐸</div>
+        <div class="plinko-canvas-container">
+            <canvas id="plinkoCanvas" width="340" height="320"></canvas>
+        </div>
+        <button class="btn" id="plinko-btn" onclick="dropPlinkoBall()">🎲 Кинути жабку (Кінець рядка)</button>
     </div>
 
     <!-- Кнопка збереження результату -->
@@ -512,7 +537,7 @@
             btns.forEach((b, i) => b.classList.toggle('active', i === index));
         }
 
-        // --- ХРЕСТИКИ-НУЛИКИ (НЕПЕРЕМОЖНИЙ АЛГОРИТМ) ---
+        // --- ХРЕСТИКИ-НУЛИКИ ---
         let tttBoard = ['', '', '', '', '', '', '', '', ''];
         let tttActive = true, tttTurn = true;
 
@@ -540,35 +565,20 @@
         }
 
         function getSmartBotMove() {
-            const winCombos = [
-                [0,1,2],[3,4,5],[6,7,8],
-                [0,3,6],[1,4,7],[2,5,8],
-                [0,4,8],[2,4,6]
-            ];
-
+            const winCombos = [[0,1,2],[3,4,5],[6,7,8],[0,3,6],[1,4,7],[2,5,8],[0,4,8],[2,4,6]];
             for (let combo of winCombos) {
                 let oCount = combo.filter(idx => tttBoard[idx] === 'O').length;
                 let emptyCount = combo.filter(idx => tttBoard[idx] === '').length;
-                if (oCount === 2 && emptyCount === 1) {
-                    return combo.find(idx => tttBoard[idx] === '');
-                }
+                if (oCount === 2 && emptyCount === 1) return combo.find(idx => tttBoard[idx] === '');
             }
-
             for (let combo of winCombos) {
                 let xCount = combo.filter(idx => tttBoard[idx] === 'X').length;
                 let emptyCount = combo.filter(idx => tttBoard[idx] === '').length;
-                if (xCount === 2 && emptyCount === 1) {
-                    return combo.find(idx => tttBoard[idx] === '');
-                }
+                if (xCount === 2 && emptyCount === 1) return combo.find(idx => tttBoard[idx] === '');
             }
-
             if (tttBoard[4] === '') return 4;
-
             const corners = [0, 2, 6, 8].filter(idx => tttBoard[idx] === '');
-            if (corners.length > 0) {
-                return corners[Math.floor(Math.random() * corners.length)];
-            }
-
+            if (corners.length > 0) return corners[Math.floor(Math.random() * corners.length)];
             let empty = tttBoard.map((v, idx) => v === '' ? idx : null).filter(v => v !== null);
             return empty[Math.floor(Math.random() * empty.length)];
         }
@@ -772,6 +782,121 @@
             document.getElementById('b-score').innerText = bS;
             document.getElementById('rps-result').innerText = res;
         }
+
+        // --- PLINKO (ЖАБКА / ПІРАМІДА) ---
+        const canvas = document.getElementById('plinkoCanvas');
+        const ctx = canvas.getContext('2d');
+
+        // Шпильки піраміди
+        let pins = [];
+        const rows = 6;
+        const startX = 170;
+        const startY = 50;
+        const spacingX = 35;
+        const spacingY = 32;
+
+        for (let r = 0; r < rows; r++) {
+            let rowPins = r + 1;
+            let rowWidth = (rowPins - 1) * spacingX;
+            let rowStartX = startX - rowWidth / 2;
+            for (let p = 0; p < rowPins; p++) {
+                pins.push({ x: rowStartX + p * spacingX, y: startY + r * spacingY });
+            }
+        }
+
+        // Призові лунки внизу (множники балів)
+        const multipliers = [3, 1.8, 1, 0.4, 1, 1.8, 3];
+        const multiplierRewards = [15, 8, 3, 1, 3, 8, 15]; // бали за попадання
+        const binWidth = 340 / multipliers.length;
+
+        let ball = null; // активна жабка, що падає
+
+        function drawPlinkoBoard() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // Малюємо шпильки
+            ctx.fillStyle = '#ffffff';
+            pins.forEach(pin => {
+                ctx.beginPath();
+                ctx.arc(pin.x, pin.y, 4, 0, Math.PI * 2);
+                ctx.fill();
+            });
+
+            // Малюємо лунки внизу
+            const binY = 260;
+            multipliers.forEach((m, i) => {
+                ctx.fillStyle = i === 3 ? '#b71c1c' : i === 0 || i === 6 ? '#2e7d32' : '#333';
+                ctx.fillRect(i * binWidth + 2, binY, binWidth - 4, 40);
+                ctx.fillStyle = '#fff';
+                ctx.font = '10px sans-serif';
+                ctx.textAlign = 'center';
+                ctx.fillText(`x${m}`, i * binWidth + binWidth / 2, binY + 25);
+            });
+
+            // Малюємо жабку (якщо летить)
+            if (ball) {
+                ctx.font = '20px sans-serif';
+                ctx.textAlign = 'center';
+                ctx.fillText('🐸', ball.x, ball.y + 7);
+            }
+        }
+
+        function dropPlinkoBall() {
+            if (ball) return; // вже летить
+
+            // Початкова позиція зверху
+            ball = {
+                x: 170 + (Math.random() * 20 - 10),
+                y: 15,
+                vx: 0,
+                vy: 2
+            };
+
+            document.getElementById('plinko-status').innerText = 'Жабка стрибає пірамідою... 🐸';
+            playSound('shot');
+
+            let anim = setInterval(() => {
+                ball.y += ball.vy;
+                ball.x += ball.vx;
+                ball.vy += 0.15; // гравітація
+
+                // Перевірка зіткнення зі шпильками
+                pins.forEach(pin => {
+                    let dx = ball.x - pin.x;
+                    let dy = ball.y - pin.y;
+                    let dist = Math.sqrt(dx * dx + dy * dy);
+                    if (dist < 12) {
+                        playSound('hit');
+                        ball.vy = -ball.vy * 0.3; // відскік
+                        ball.vx += (Math.random() - 0.5) * 3; // випадковий відскік вліво/вправо
+                    }
+                });
+
+                // Межі полотна
+                if (ball.x < 15) { ball.x = 15; ball.vx = -ball.vx; }
+                if (ball.x > 325) { ball.x = 325; ball.vx = -ball.vx; }
+
+                drawPlinkoBoard();
+
+                // Падіння у лунки
+                if (ball.y >= 260) {
+                    clearInterval(anim);
+                    let binIndex = Math.floor(ball.x / binWidth);
+                    if (binIndex < 0) binIndex = 0;
+                    if (binIndex >= multipliers.length) binIndex = multipliers.length - 1;
+
+                    let earned = multiplierRewards[binIndex];
+                    addPoints(earned);
+
+                    document.getElementById('plinko-status').innerText = `Жабка впала на x${multipliers[binIndex]}! +${earned} балів! 🎉`;
+                    playSound('miss');
+                    ball = null;
+                    drawPlinkoBoard();
+                }
+            }, 25);
+        }
+
+        drawPlinkoBoard();
     </script>
 </body>
 </html>
